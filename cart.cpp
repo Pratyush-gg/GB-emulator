@@ -306,3 +306,11 @@ void print_cart_info() {
     cout << "Title: " << string(ctx.header->title, 16) << endl;
     // print other stuff...
 }
+
+u8 cart_read(u16 address) {
+        return ctx.rom_data[address];
+}
+
+void cart_write(u16 address, u8 value) {
+    // nothing
+}

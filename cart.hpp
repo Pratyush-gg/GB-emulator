@@ -17,4 +17,9 @@ class cart_header {
         u16 global_check_sum; // 014E - 014F
 };
 bool cart_load(const char* file);
+
 void print_cart_info();
+
+u8 cart_read(u16 address);
+
+void cart_write(u16 address, u8 value);
