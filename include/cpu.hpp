@@ -1,0 +1,91 @@
+#pragma once
+
+#include "instructions.hpp"
+#include "mmu.hpp"
+
+#include <cstdint>
+#include <memory>
+#include <bitset>
+
+struct FlagRegister {
+private:
+    static const size_t Z_pos = 7;
+    static const size_t N_pos = 6;
+    static const size_t H_pos = 5;
+    static const size_t C_pos = 4;
+
+    std::bitset<8> flags;
+public:
+    bool z() const { return flags.test(Z_pos); }
+    bool n() const { return flags.test(N_pos); }
+    bool h() const { return flags.test(H_pos); }
+    bool c() const { return flags.test(C_pos); }
+
+    void set_z(bool val) { flags.set(Z_pos, val); }
+    void set_n(bool val) { flags.set(N_pos, val); }
+    void set_h(bool val) { flags.set(H_pos, val); }
+    void set_c(bool val) { flags.set(C_pos, val); }
+
+    uint8_t get_byte() const {
+        return static_cast<uint8_t>(flags.to_ulong());
+    }
+    void set_byte(uint8_t val) {
+        flags = val & 0xF0;
+    }
+};
+
+class RegisterFile {
+    
+    union RegisterPair {
+        uint16_t word;
+        struct {
+            uint8_t low_reg;
+            uint8_t high_reg;
+        };
+    };
+
+    RegisterPair _af, _bc, _de, _hl;
+    FlagRegister flags;
+
+public:
+    uint8_t& A = _af.high_reg, F = _af.low_reg;
+    uint8_t& B = _bc.high_reg, C = _bc.low_reg;
+    uint8_t& D = _de.high_reg, E = _de.low_reg;
+    uint8_t& H = _hl.high_reg, L = _hl.low_reg;
+
+    uint16_t& AF = _af.word;
+    uint16_t& BC = _bc.word;
+    uint16_t& DE = _de.word;
+    uint16_t& HL = _hl.word;
+
+    uint16_t SP, PC;
+
+    RegisterFile() : PC(0x100) {}
+};
+
+class CPU {
+private:
+    uint16_t fetch_data;
+    uint16_t mem_dest;
+
+    bool dest_is_mem;
+    uint8_t current_opcode;
+    Instruction current_instruction;
+    bool halted;
+    bool stepping;
+
+    uint16_t reverse(uint16_t num);
+
+public:
+    CPU();
+    ~CPU();
+
+    RegisterFile regs;
+    std::shared_ptr<MMU> bus;
+
+    void cpu_step();
+    void fetch_instruction();
+    void decode_instruction();
+    void execute_instruction();
+};
+

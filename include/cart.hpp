@@ -1,17 +1,41 @@
-#include <cart.hpp>
-#include <fstream>
+#pragma once
+
+#include <cstdint>
+#include <unordered_map>
+#include <string>
 #include <vector>
 
-class cart_context {
-    char filename[1024];
-    u32 rom_size_actual;
-    u8* rom_data;
-    cart_header *header;
+class Cartridge {
+    struct Header {
+        uint8_t entry_point[4]; // 0100 - 0103
+        uint8_t logo[30]; // 0104 - 0133
+        char title[16]; // 0134 - 0143
+        uint16_t license_code; // 0144 - 0145
+        uint8_t sgb_flag; // 0146
+        uint8_t cart_type; // 0147
+        uint8_t rom_size; // 0148
+        uint8_t ram_size; // 0149
+        uint8_t dest_code; // 014A
+        uint8_t old_license_code; // 014B
+        uint8_t mask_rom_version; // 014C
+        uint8_t check_sum; // 014D
+        uint8_t global_check_sum; // 014E - 014F
+    };
+
+public:
+    std::string filename;
+    uint32_t rom_size;
+    std::vector<uint8_t> rom_data;
+    Header cart_header;
+
+    bool cart_load(const std::string filename);
+    void print_cart_info();
+
+    uint8_t cart_read(uint16_t address);
+    void cart_write(uint16_t address, uint8_t value);
 };
 
-cart_context ctx;
-
-const vector<pair<u16, string>> license_code = {
+const std::unordered_map<uint16_t, std::string> license_code_lookup = {
     {0x00, "None"},
     {0x01, "Nintendo R&D1"},
     {0x08, "Capcom"},
@@ -73,7 +97,8 @@ const vector<pair<u16, string>> license_code = {
     {0x97, "Kaneko"},
     {0x99, "Pack-In-Video"},
 };
-const vector<pair<u8, string>> cart_type = {
+
+const std::unordered_map<uint16_t, std::string> cart_type_lookup = {
     {0x00, "ROM only"},
     {0x01, "MBC1"},
     {0x02, "MBC1+RAM"},
@@ -103,7 +128,8 @@ const vector<pair<u8, string>> cart_type = {
     {0xFE, "HuC-3"},
     {0xFF, "HuC-1+RAM+BATTERY"},
 };
-const vector<pair<u8, string>> rom_size = {
+
+const std::unordered_map<uint8_t, std::string> rom_size_lookup = {
     {0x00, "32 KiB"},
     {0x01, "64 KiB"},
     {0x02, "128 KiB"},
@@ -117,7 +143,8 @@ const vector<pair<u8, string>> rom_size = {
     {0x53, "1.2 MiB"},
     {0x54, "1.5 MiB"},
 };
-const vector<pair<u8, string>> ram_size = {
+
+const std::unordered_map<uint8_t, std::string> ram_size_lookup = {
     {0x00, "None"},
     {0x01, "2 KiB"},
     {0x02, "8 KiB"},
@@ -125,11 +152,13 @@ const vector<pair<u8, string>> ram_size = {
     {0x04, "128 KiB"},
     {0x05, "64 KiB"},
 };
-const vector<pair<u8, string>> dest_code = {
+
+const std::unordered_map<uint8_t, std::string> dest_code_lookup = {
     {0x00, "Japan (and possibly overseas)"},
     {0x01, "Overseas Only"}
 };
-const vector<pair<u8, string>> old_license_code = {
+
+const std::unordered_map<uint8_t, std::string> old_license_code_lookup= {
     {0x00, "None"},
     {0x01, "Nintendo"},
     {0x08, "Capcom"},
@@ -278,39 +307,3 @@ const vector<pair<u8, string>> old_license_code = {
     {0xF3, "Extreme Entertainment"},
     {0xFF, "LJN"},
 };
-
-bool cart_load(const char* file) {
-    strcpy(ctx.filename, file);
-    ifstream f1(file, ios::binary);
-    if (!f1.is_open()) {
-        cerr << "Error: Could not open file " << file << endl;
-        return false;
-    }
-    f1.seekg(0, ios::end);
-    ctx.rom_size_actual = f1.tellg();
-    f1.seekg(0, ios::beg);
-    ctx.rom_data = new u8[ctx.rom_size_actual];
-    f1.read(reinterpret_cast<char*>(ctx.rom_data), ctx.rom_size_actual);
-    f1.close();
-    ctx.header = (cart_header*)(ctx.rom_data + 0x100);
-}
-
-void print_cart_info() {
-    if (!ctx.header || !ctx.rom_data) {
-        cout << "Error: No cartridge header loaded." << endl;
-        return;
-    }
-    cout << "Cartridge Information:" << endl;
-    cout << "File: " << ctx.filename << endl;
-    cout << "ROM Size: " << ctx.rom_size_actual << " bytes" << endl;
-    cout << "Title: " << string(ctx.header->title, 16) << endl;
-    // print other stuff...
-}
-
-u8 cart_read(u16 address) {
-        return ctx.rom_data[address];
-}
-
-void cart_write(u16 address, u8 value) {
-    // nothing
-}

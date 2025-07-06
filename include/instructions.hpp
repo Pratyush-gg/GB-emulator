@@ -1,7 +1,8 @@
 #pragma once
-#include "gb_utils.hpp"
+#include <cstdint>
+#include <optional>
 
-enum class address_mode {
+enum class ADDR_MODE {
     AM_IMP,
     AM_R_D16,
     AM_R_R,
@@ -25,7 +26,7 @@ enum class address_mode {
     AM_R_A16
 };
 
-enum class register_type {
+enum class REG_TYPE {
     RT_NONE,
     RT_A,
     RT_F,
@@ -43,7 +44,7 @@ enum class register_type {
     RT_PC
 };
 
-enum class instruction_type {
+enum class INST_TYPE {
     IN_NONE,
     IN_NOP,
     IN_LD,
@@ -95,7 +96,7 @@ enum class instruction_type {
     IN_SET
 };
 
-enum class condition_type {
+enum class COND_TYPE {
     CT_NONE,
     CT_Z,
     CT_NZ,
@@ -107,11 +108,12 @@ enum class condition_type {
     CT_M
 };
 
-struct instruction {
-    condition_type condition;
-    address_mode mode;
-    register_type reg1;
-    register_type reg2;
-    instruction_type type;
-    u8 param;
+struct Instruction {
+    std::optional<COND_TYPE> condition{};
+    ADDR_MODE mode { ADDR_MODE::AM_IMP };
+    std::optional<REG_TYPE> reg1{};
+    std::optional<REG_TYPE> reg2{};
+    INST_TYPE type { INST_TYPE::IN_NONE };
+    uint8_t num_cycles{0};
+    std::optional<uint16_t> param{};
 };
