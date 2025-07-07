@@ -19,7 +19,7 @@ class Cartridge {
         uint8_t old_license_code; // 014B
         uint8_t mask_rom_version; // 014C
         uint8_t check_sum; // 014D
-        uint8_t global_check_sum; // 014E - 014F
+        uint16_t global_check_sum; // 014E - 014F
     };
 
 public:
