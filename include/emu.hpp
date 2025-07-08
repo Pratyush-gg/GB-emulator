@@ -7,10 +7,10 @@ private:
     bool paused;
     uint64_t cycles;
 public:
-    Emulator() : 
-        running(false), 
-        paused(false), 
-        cycles(0) 
+    Emulator():
+        running(false),
+        paused(false),
+        cycles(0)
     {}
 
     int emu_run(int argc, char** argv);

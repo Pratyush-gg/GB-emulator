@@ -23,4 +23,12 @@ int main(int argc, char* argv[]) {
     // SDL initialization
 
     // CPU initialization
+
+    while (emu.running) {
+        cpu.cpu_step();
+        // Todo
+        emu.cycles++;
+    }
+
+    return 0;
 }

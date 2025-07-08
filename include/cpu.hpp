@@ -35,7 +35,7 @@ public:
 };
 
 class RegisterFile {
-    
+
     union RegisterPair {
         uint16_t word;
         struct {
@@ -48,7 +48,7 @@ class RegisterFile {
     FlagRegister flags;
 
 public:
-    uint8_t& A = _af.high_reg, F = _af.low_reg;
+    uint8_t& A = _af.high_reg, F = flags.get_byte();
     uint8_t& B = _bc.high_reg, C = _bc.low_reg;
     uint8_t& D = _de.high_reg, E = _de.low_reg;
     uint8_t& H = _hl.high_reg, L = _hl.low_reg;
@@ -60,7 +60,7 @@ public:
 
     uint16_t SP, PC;
 
-    RegisterFile() : PC(0x100) {}
+    RegisterFile() : SP(0xFFFE), PC(0x0100) {}
 };
 
 class CPU {
