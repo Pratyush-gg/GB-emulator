@@ -61,6 +61,28 @@ public:
     uint16_t SP, PC;
 
     RegisterFile() : SP(0xFFFE), PC(0x0100) {}
+
+    uint16_t ReadRegister(REG_TYPE reg) {
+        switch (reg) {
+            case REG_TYPE::RT_A: return A;
+            case REG_TYPE::RT_F: return F;
+            case REG_TYPE::RT_B: return B;
+            case REG_TYPE::RT_C: return C;
+            case REG_TYPE::RT_D: return D;
+            case REG_TYPE::RT_E: return E;
+            case REG_TYPE::RT_H: return H;
+            case REG_TYPE::RT_L: return L;
+            case REG_TYPE::RT_AF: return AF;
+            case REG_TYPE::RT_BC: return BC;
+            case REG_TYPE::RT_DE: return DE;
+            case REG_TYPE::RT_HL: return HL;
+            case REG_TYPE::RT_SP: return SP;
+            case REG_TYPE::RT_PC: return PC;
+            default:
+               std::cerr << "Error: Invalid register type" << std::endl;
+               return 0;
+        }
+    }
 };
 
 class CPU {

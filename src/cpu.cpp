@@ -1,9 +1,12 @@
 #include "../include/cpu.hpp"
 #include "../include/instructions.hpp"
 #include "../include/mmu.hpp"
+#include "../include/emu.hpp"
 
 #include <iostream>
 #include <cstdint>
+
+Emulator emulator;
 
 void CPU::fetch_instruction() {
     current_opcode = bus->read_data(regs.PC);
@@ -13,26 +16,34 @@ void CPU::fetch_instruction() {
         std::cerr << "Error: Unknown instruction at PC: " << std::hex << regs.PC - 1 << std::dec << std::endl;
         return;
     }
+    emulator.cycles = 4;
 }
 
-void CPU::decode_instruction() {
-    Instruction &inst = this->current_instruction;
-    switch (inst.type) {
-        case INST_TYPE::IN_LD:
-            if (inst.mode == ADDR_MODE::AM_R_D16) {
-                inst.param = bus->read_data(regs.PC) | (bus->read_data(regs.PC + 1) << 8);
-                regs.PC += 2;
-            } else if (inst.mode == ADDR_MODE::AM_R_R) {
-                // No additional data needed
-            } else if (inst.mode == ADDR_MODE::AM_MR_R) {
-                inst.param = regs.get_register(inst.reg1.value());
-            }
-            break;
-        // Handle other instruction types...
-        default:
-            break;
-    }
+//TODO
+
+void CPU::execute_instruction() {
+    process
 }
+
+
+// void CPU::decode_instruction() {
+//     Instruction &inst = this->current_instruction;
+//     switch (inst.type) {
+//         case INST_TYPE::IN_LD:
+//             if (inst.mode == ADDR_MODE::AM_R_D16) {
+//                 inst.param = bus->read_data(regs.PC) | (bus->read_data(regs.PC + 1) << 8);
+//                 regs.PC += 2;
+//             } else if (inst.mode == ADDR_MODE::AM_R_R) {
+//                 // No additional data needed
+//             } else if (inst.mode == ADDR_MODE::AM_MR_R) {
+//                 inst.param = regs.get_register(inst.reg1.value());
+//             }
+//             break;
+//         // Handle other instruction types...
+//         default:
+//             break;
+//     }
+// }
 
 // TODO: figure out what this is
 // void CPU::fetch_data() {

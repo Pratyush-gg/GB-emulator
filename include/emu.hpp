@@ -2,11 +2,11 @@
 #include <cstdint>
 
 class Emulator {
-private:
+public:
     bool running;
     bool paused;
     uint64_t cycles;
-public:
+
     Emulator():
         running(false),
         paused(false),
