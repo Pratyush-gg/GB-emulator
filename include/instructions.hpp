@@ -116,3 +116,5 @@ struct Instruction {
     uint8_t num_cycles{0};
     std::optional<uint16_t> param{};
 };
+
+static const Instruction instructions[256];
