@@ -1,5 +1,6 @@
 #pragma once
 
+#include "emu.hpp"
 #include "instructions.hpp"
 #include "mmu.hpp"
 
@@ -32,82 +33,38 @@ public:
     void set_byte(uint8_t val) {
         flags = val & 0xF0;
     }
+
+    FlagRegister& operator=(uint8_t value) {
+        this->set_byte(value);
+        return *this;
+    }
 };
 
 class RegisterFile {
 
-    union RegisterPair {
-        uint16_t word;
-        struct {
-            uint8_t low_reg;
-            uint8_t high_reg;
-        };
-    };
-
-    RegisterPair _af, _bc, _de, _hl;
+private:
+    uint8_t _a, _b, _c, _d, _e, _h, _l;
 
 public:
     FlagRegister flags;
-
-    uint8_t& A = _af.high_reg, F = flags.get_byte();
-    uint8_t& B = _bc.high_reg, C = _bc.low_reg;
-    uint8_t& D = _de.high_reg, E = _de.low_reg;
-    uint8_t& H = _hl.high_reg, L = _hl.low_reg;
-
-    uint16_t& AF = _af.word;
-    uint16_t& BC = _bc.word;
-    uint16_t& DE = _de.word;
-    uint16_t& HL = _hl.word;
-
     uint16_t SP, PC;
 
-    RegisterFile() : SP(0xFFFE), PC(0x0100) {}
+    RegisterFile() : SP(0xFFFE), PC(0x0100), 
+                     _a(0), _b(0), _c(0), _d(0), _e(0), _h(0), _l(0) {}
 
-    uint16_t ReadRegister(REG_TYPE reg) {
-        switch (reg) {
-            case REG_TYPE::RT_A: return A;
-            case REG_TYPE::RT_F: return flags.get_byte();
-            case REG_TYPE::RT_B: return B;
-            case REG_TYPE::RT_C: return C;
-            case REG_TYPE::RT_D: return D;
-            case REG_TYPE::RT_E: return E;
-            case REG_TYPE::RT_H: return H;
-            case REG_TYPE::RT_L: return L;
-            case REG_TYPE::RT_AF: return AF;
-            case REG_TYPE::RT_BC: return BC;
-            case REG_TYPE::RT_DE: return DE;
-            case REG_TYPE::RT_HL: return HL;
-            case REG_TYPE::RT_SP: return SP;
-            case REG_TYPE::RT_PC: return PC;
-            default:
-               std::cerr << "Error: Invalid register type" << std::endl;
-               return 0;
-        }
-    }
-
-    void set_register(REG_TYPE reg, uint16_t value) {
-        switch (reg) {
-            case REG_TYPE::RT_A: A = value & 0xFF; break;
-            case REG_TYPE::RT_B: B = value & 0xFF; break;
-            case REG_TYPE::RT_C: C = value & 0xFF; break;
-            case REG_TYPE::RT_D: D = value & 0xFF; break;
-            case REG_TYPE::RT_E: E = value & 0xFF; break;
-            case REG_TYPE::RT_H: H = value & 0xFF; break;
-            case REG_TYPE::RT_L: L = value & 0xFF; break;
-            case REG_TYPE::RT_AF: AF = value & 0xFFFF; break;
-            case REG_TYPE::RT_BC: BC = value & 0xFFFF; break;
-            case REG_TYPE::RT_DE: DE = value & 0xFFFF; break;
-            case REG_TYPE::RT_HL: HL = value & 0xFFFF; break;
-            case REG_TYPE::RT_SP: SP = value & 0xFFFF; break;
-            case REG_TYPE::RT_PC: PC = value & 0xFFFF; break;
-            default:
-                std::cerr << "Error: Invalid register type" << std::endl;
-        }
-    }
+    uint16_t read_register(REG_TYPE reg);
+    void set_register(REG_TYPE reg, uint16_t value);
 };
 
 class CPU {
 public:
+
+    CPU(const std::shared_ptr<Emulator> _emulator, 
+        const std::shared_ptr<MMU> _mmu):
+        emulator(_emulator),
+        bus(_mmu)
+    {}
+
     uint16_t fetch_data;
     uint16_t mem_dest;
 
@@ -119,11 +76,10 @@ public:
     bool interrupt_master_enable;
 
     uint16_t reverse(uint16_t num);
-    CPU();
-    ~CPU();
 
     RegisterFile regs;
     std::shared_ptr<MMU> bus;
+    std::shared_ptr<Emulator> emulator;
 
     bool cpu_step();
     void fetch_instruction();

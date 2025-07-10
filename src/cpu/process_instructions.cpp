@@ -1,5 +1,4 @@
 #include "../../include/cpu.hpp"
-#include "../../include/emu.hpp"
 #include "../../include/instructions.hpp"
 #include "../../include/process_instructions.hpp"
 
@@ -34,10 +33,10 @@ void process_DI(CPU& cpu) {
     cpu.interrupt_master_enable = false;
 }
 
-void process_JP(CPU& cpu, Emulator& emulator) {
+void process_JP(CPU& cpu) {
     if (check_condition(cpu, cpu.current_instruction)) {
         cpu.regs.PC = cpu.fetch_data;
-        emulator.cycles += 4;
+        cpu.emulator->cycles += 4;
     }
 }
 

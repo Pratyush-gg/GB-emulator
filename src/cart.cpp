@@ -2,8 +2,10 @@
 
 #include <fstream>
 #include <cstdint>
+#include <ios>
 #include <iostream>
 #include <cstring>
+#include <unordered_map>
 
 bool Cartridge::cart_load(const std::string filename) {
     this->filename = filename;
@@ -42,12 +44,32 @@ bool Cartridge::cart_load(const std::string filename) {
         calculated_checksum -= this->rom_data[i] - 1;
     }
 
-    if (calculated_checksum & 0xFF == this->cart_header.check_sum) {
+    if ((calculated_checksum & 0xFF) == this->cart_header.check_sum) {
         std::cout << "Checksum matches." << std::endl;
     } else {
         std::cerr << "Warning: Checksum does not match!" << std::endl;
     }
     return true;
+}
+
+template<typename T> // template to accomodate both uint8_t and uint16_t
+void print_info(const std::string&& label, T key, 
+        const std::unordered_map<T, std::string> &lookup_table, bool show_key = true) {
+
+    // display required label
+    std::cout << label << ": ";
+
+    if (show_key) {
+        std::cout << " 0x" << std::hex << static_cast<int>(key) << std::dec << " ";
+    }
+
+    std::cout << "(";
+    if (auto it = lookup_table.find(key); it != lookup_table.end()) { // cool modern if statement
+        std::cout << it->second;
+    } else {
+        std::cout << "Unknown";
+    }
+    std::cout << ")" << std::endl;
 }
 
 void Cartridge::print_cart_info() {
@@ -60,44 +82,14 @@ void Cartridge::print_cart_info() {
     std::cout << "File: " << this->filename << std::endl;
     std::cout << "Title: " << this->cart_header.title << std::endl;
 
-    std::cout << "Cartridge Type: 0x" << std::hex << +this->cart_header.cart_type << " (";
-    auto it = cart_type_lookup.find(this->cart_header.cart_type);
-    if (it != cart_type_lookup.end()) {
-        std::cout << it->second << ")" << std::dec << std::endl;
-    } else {
-        std::cout << "Unknown)" << std::dec << std::endl;
-    }
+    print_info("Cartridge Type", static_cast<uint16_t>(this->cart_header.cart_type), cart_type_lookup);
 
     std::cout << "Original ROM Size: " << this->rom_size << " bytes" << std::endl;
+    print_info("ROM Size", this->cart_header.rom_size, rom_size_lookup);
 
-    std::cout << "ROM Size: 0x" << std::hex << +this->cart_header.rom_size << " (";
-    auto it = rom_size_lookup.find(this->cart_header.rom_size);
-    if (it != rom_size_lookup.end()) {
-        std::cout << it->second << ")" << std::endl;
-    } else {
-        std::cout << "Unknown)" << std::endl;
-    }
+    print_info("RAM Size", this->cart_header.ram_size, ram_size_lookup);
 
-    std::cout << "RAM Size: 0x" << std::hex << +this->cart_header.ram_size << " (";
-    auto it = ram_size_lookup.find(this->cart_header.ram_size);
-    if (it != ram_size_lookup.end()) {
-        std::cout << it->second << ")" << std::endl;
-    } else {
-        std::cout << "Unknown)" << std::endl;
-    }
-
-    std::cout << "License Code: 0x" << std::hex << this->cart_header.license_code;
-    if (this->cart_header.license_code == 0x00) {
-        std::cout << " (None)" << std::dec << std::endl;
-    }
-    else {
-        auto it = license_code_lookup.find(this->cart_header.license_code);
-        if (it != license_code_lookup.end()) {
-            std::cout << " (" << it->second << ")" << std::dec << std::endl;
-        } else {
-            std::cout << " (Unknown)" << std::dec << std::endl;
-        }
-    }
+    print_info("License Code", static_cast<uint16_t>(this->cart_header.license_code), license_code_lookup);
 
     std::cout << "ROM version: 0x" << std::hex << +this->cart_header.mask_rom_version << std::dec << std::endl;
 }

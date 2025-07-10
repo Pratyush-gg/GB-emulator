@@ -1,13 +1,8 @@
 #include "../../include/cpu.hpp"
 #include "../../include/instructions.hpp"
 #include "../../include/process_instructions.hpp"
-#include "../../include/mmu.hpp"
-#include "../../include/emu.hpp"
 
 #include <iostream>
-#include <cstdint>
-
-Emulator emulator;
 
 void CPU::fetch_instruction() {
     current_opcode = bus->read_data(regs.PC);
@@ -17,7 +12,7 @@ void CPU::fetch_instruction() {
         std::cerr << "Error: Unknown instruction at PC: " << std::hex << regs.PC - 1 << std::dec << std::endl;
         return;
     }
-    emulator.cycles = 4;
+    emulator->cycles += 4;
 }
 
 //TODO
@@ -31,7 +26,7 @@ void CPU::execute_instruction(const Instruction& instruction) {
             process_DI(*this);
             break;
         case INST_TYPE::IN_JP:
-            process_JP(*this, emulator);
+            process_JP(*this);
             break;
         case INST_TYPE::IN_XOR:
             process_XOR(*this);
