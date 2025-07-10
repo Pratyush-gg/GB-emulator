@@ -1,5 +1,6 @@
 #include "../include/cpu.hpp"
 #include "../include/instructions.hpp"
+#include "../include/process_instructions.hpp"
 #include "../include/mmu.hpp"
 #include "../include/emu.hpp"
 
@@ -21,10 +22,22 @@ void CPU::fetch_instruction() {
 
 //TODO
 
-void CPU::execute_instruction() {
-    process
+void CPU::execute_instruction(const Instruction& instruction) {
+    switch (instruction.type) {
+        case INST_TYPE::IN_NOP:
+            process_NOP(*this);
+            break;
+        case INST_TYPE::IN_JP:
+            process_JP(*this, emulator);
+            break;
+        case INST_TYPE::IN_XOR:
+            process_XOR(*this);
+            break;
+        default:
+            std::cerr << "Error: Unhandled instruction type: " << static_cast<int>(instruction.type) << std::endl;
+            break;
+    }
 }
-
 
 // void CPU::decode_instruction() {
 //     Instruction &inst = this->current_instruction;

@@ -45,9 +45,10 @@ class RegisterFile {
     };
 
     RegisterPair _af, _bc, _de, _hl;
-    FlagRegister flags;
 
 public:
+    FlagRegister flags;
+
     uint8_t& A = _af.high_reg, F = flags.get_byte();
     uint8_t& B = _bc.high_reg, C = _bc.low_reg;
     uint8_t& D = _de.high_reg, E = _de.low_reg;
@@ -86,7 +87,7 @@ public:
 };
 
 class CPU {
-private:
+public:
     uint16_t fetch_data;
     uint16_t mem_dest;
 
@@ -97,8 +98,6 @@ private:
     bool stepping;
 
     uint16_t reverse(uint16_t num);
-
-public:
     CPU();
     ~CPU();
 
@@ -108,6 +107,6 @@ public:
     void cpu_step();
     void fetch_instruction();
     void decode_instruction();
-    void execute_instruction();
+    void execute_instruction(const Instruction& instruction);
 };
 
