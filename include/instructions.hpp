@@ -114,6 +114,16 @@ struct Instruction {
     std::optional<REG_TYPE> reg2{};
     std::optional<COND_TYPE> condition{};
     std::optional<uint16_t> param{};
+
+    // The main constructor for your table
+    constexpr Instruction(
+        INST_TYPE t = INST_TYPE::IN_NONE,
+        ADDR_MODE m = ADDR_MODE::AM_IMP,
+        std::optional<REG_TYPE> r1 = std::nullopt,
+        std::optional<REG_TYPE> r2 = std::nullopt,
+        std::optional<COND_TYPE> c = std::nullopt,
+        std::optional<uint16_t> p = std::nullopt)
+        : type(t), mode(m), reg1(r1), reg2(r2), condition(c), param(p) {}
 };
 
-static const Instruction instructions[256];
+extern const Instruction instructions[256];

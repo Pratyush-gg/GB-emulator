@@ -52,7 +52,7 @@ Cartridge::Cartridge(const std::string &filename) {
 }
 
 template<typename T> // template to accomodate both uint8_t and uint16_t
-void print_info(const std::string&& label, T key, 
+void print_info(const std::string&& label, T key,
         const std::unordered_map<T, std::string> &lookup_table, bool show_key = true) {
 
     // display required label
@@ -97,6 +97,6 @@ uint8_t Cartridge::cart_read(uint16_t address) {
     return this->rom_data[address];
 }
 
-void Cartridge::cart_write(uint16_t address, uint8_t value) {
-    // nothing
-}
+// void Cartridge::cart_write(uint16_t address, uint8_t value) {
+//     // nothing
+// }

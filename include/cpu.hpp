@@ -46,7 +46,7 @@ public:
     FlagRegister flags;
     uint16_t SP, PC;
 
-    RegisterFile() : SP(0xFFFE), PC(0x0100), 
+    RegisterFile() : SP(0xFFFE), PC(0x0100),
                      _a(0), _b(0), _c(0), _d(0), _e(0), _h(0), _l(0) {}
 
     uint16_t read_register(REG_TYPE reg);
@@ -55,8 +55,7 @@ public:
 
 class CPU {
 public:
-    CPU(const std::shared_ptr<MMU> _mmu): bus(_mmu) {}
-
+    CPU(const std::shared_ptr<MMU> _mmu) : bus(_mmu) {};
     uint16_t fetch_data;
     uint16_t mem_dest;
 
@@ -70,7 +69,7 @@ public:
 
     RegisterFile regs;
 
-    int cpu_step(); 
+    int cpu_step();
     int fetch_instruction();
     int decode_instruction();
     int execute_instruction(const Instruction& instruction);

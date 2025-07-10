@@ -33,7 +33,7 @@ public:
     void print_cart_info();
 
     uint8_t cart_read(uint16_t address);
-    void cart_write(uint16_t address, uint8_t value);
+    // void cart_write(uint16_t address, uint8_t value);
 };
 
 const std::unordered_map<uint16_t, std::string> license_code_lookup = {

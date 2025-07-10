@@ -9,9 +9,12 @@ Emulator::Emulator(const std::string& rom_filename):
     paused(false),
     cycles(0) {
     // TODO: implement the other components required for MMU lmao
-
-    bus = std::make_shared<MMU>();
-    cart = std::make_shared<Cartridge>();
+    cart = std::make_shared<Cartridge>(rom_filename);
+    // ppu = std::make_shared<PicturePU>();
+    // apu = std::make_shared<AudioPU>();
+    // timer = std::make_shared<Timer>();
+    // joypad = std::make_shared<JoyPad>();
+    bus = std::make_shared<MMU>(cart);
     cpu = std::make_shared<CPU>(bus);
 
     // TODO: implement the SDL shit and also declare it as a member variable
@@ -22,9 +25,9 @@ void Emulator::run() {
         if (paused) {
             continue;
         }
-        pollInput();
+        // pollInput();
         updateState();
-        renderScreen();
+        // renderScreen();
 
         if (!running) {
             break;
@@ -40,4 +43,8 @@ void Emulator::updateState() {
         return;
     }
     cycles += increment_cycles;
+}
+
+Emulator::~Emulator() {
+    // TODO
 }
