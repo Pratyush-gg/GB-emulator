@@ -25,9 +25,16 @@ int main(int argc, char* argv[]) {
     // CPU initialization
 
     while (emu.running) {
-        cpu.cpu_step();
-        // Todo
-        emu.cycles++;
+        if (emu.paused) {
+            continue;
+        }
+
+        if (!cpu.cpu_step()) {
+            std::cout << "CPU stopped." << std::endl;
+            emu.running = false;
+            break;
+        }
+        emu.cycles += 4;
     }
 
     return 0;

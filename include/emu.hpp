@@ -8,7 +8,7 @@ public:
     uint64_t cycles;
 
     Emulator():
-        running(false),
+        running(true),
         paused(false),
         cycles(0)
     {}

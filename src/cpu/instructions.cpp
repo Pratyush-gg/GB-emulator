@@ -1,4 +1,4 @@
-#include "../include/instructions.hpp"
+#include "../../include/instructions.hpp"
 
 Instruction instructions[256] = {
     [0x00] = {INST_TYPE::IN_NOP, ADDR_MODE::AM_IMP},

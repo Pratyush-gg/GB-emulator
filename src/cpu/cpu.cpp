@@ -1,8 +1,8 @@
-#include "../include/cpu.hpp"
-#include "../include/instructions.hpp"
-#include "../include/process_instructions.hpp"
-#include "../include/mmu.hpp"
-#include "../include/emu.hpp"
+#include "../../include/cpu.hpp"
+#include "../../include/instructions.hpp"
+#include "../../include/process_instructions.hpp"
+#include "../../include/mmu.hpp"
+#include "../../include/emu.hpp"
 
 #include <iostream>
 #include <cstdint>
@@ -27,6 +27,9 @@ void CPU::execute_instruction(const Instruction& instruction) {
         case INST_TYPE::IN_NOP:
             process_NOP(*this);
             break;
+        case INST_TYPE::IN_DI:
+            process_DI(*this);
+            break;
         case INST_TYPE::IN_JP:
             process_JP(*this, emulator);
             break;
@@ -37,6 +40,21 @@ void CPU::execute_instruction(const Instruction& instruction) {
             std::cerr << "Error: Unhandled instruction type: " << static_cast<int>(instruction.type) << std::endl;
             break;
     }
+}
+
+bool CPU::cpu_step() {
+    if (!halted) {
+
+        fetch_instruction();
+        decode_instruction();
+
+        std::cout << "PC: " << std::hex << regs.PC << " Opcode: " << std::hex << static_cast<int>(current_opcode) << std::dec;
+        std::cout << " Instruction: " << static_cast<int>(current_instruction.type) << " Mode: " << static_cast<int>(current_instruction.mode);
+        std::cout << bus->read_data(regs.PC) << " " << bus->read_data(regs.PC + 1) << std::endl;
+
+        execute_instruction(current_instruction);
+    }
+    return true;
 }
 
 // void CPU::decode_instruction() {

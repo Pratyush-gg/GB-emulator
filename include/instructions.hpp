@@ -108,12 +108,11 @@ enum class COND_TYPE {
 };
 
 struct Instruction {
-    INST_TYPE type { INST_TYPE::IN_NONE };
-    ADDR_MODE mode { ADDR_MODE::AM_IMP };
+    INST_TYPE type {INST_TYPE::IN_NONE};
+    ADDR_MODE mode {};
     std::optional<REG_TYPE> reg1{};
     std::optional<REG_TYPE> reg2{};
     std::optional<COND_TYPE> condition{};
-    uint8_t num_cycles{0};
     std::optional<uint16_t> param{};
 };
 

@@ -1,7 +1,7 @@
-#include "../include/cpu.hpp"
-#include "../include/emu.hpp"
-#include "../include/instructions.hpp"
-#include "../include/process_instructions.hpp"
+#include "../../include/cpu.hpp"
+#include "../../include/emu.hpp"
+#include "../../include/instructions.hpp"
+#include "../../include/process_instructions.hpp"
 
 #include <iostream>
 
@@ -28,8 +28,10 @@ bool check_condition(CPU& cpu, const Instruction& instruction) {
     }
 }
 
-void process_NOP(CPU& cpu) {
+void process_NOP(CPU& cpu) {}
 
+void process_DI(CPU& cpu) {
+    cpu.interrupt_master_enable = false;
 }
 
 void process_JP(CPU& cpu, Emulator& emulator) {

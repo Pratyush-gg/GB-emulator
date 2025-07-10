@@ -66,7 +66,7 @@ public:
     uint16_t ReadRegister(REG_TYPE reg) {
         switch (reg) {
             case REG_TYPE::RT_A: return A;
-            case REG_TYPE::RT_F: return F;
+            case REG_TYPE::RT_F: return flags.get_byte();
             case REG_TYPE::RT_B: return B;
             case REG_TYPE::RT_C: return C;
             case REG_TYPE::RT_D: return D;
@@ -84,6 +84,26 @@ public:
                return 0;
         }
     }
+
+    void set_register(REG_TYPE reg, uint16_t value) {
+        switch (reg) {
+            case REG_TYPE::RT_A: A = value & 0xFF; break;
+            case REG_TYPE::RT_B: B = value & 0xFF; break;
+            case REG_TYPE::RT_C: C = value & 0xFF; break;
+            case REG_TYPE::RT_D: D = value & 0xFF; break;
+            case REG_TYPE::RT_E: E = value & 0xFF; break;
+            case REG_TYPE::RT_H: H = value & 0xFF; break;
+            case REG_TYPE::RT_L: L = value & 0xFF; break;
+            case REG_TYPE::RT_AF: AF = value & 0xFFFF; break;
+            case REG_TYPE::RT_BC: BC = value & 0xFFFF; break;
+            case REG_TYPE::RT_DE: DE = value & 0xFFFF; break;
+            case REG_TYPE::RT_HL: HL = value & 0xFFFF; break;
+            case REG_TYPE::RT_SP: SP = value & 0xFFFF; break;
+            case REG_TYPE::RT_PC: PC = value & 0xFFFF; break;
+            default:
+                std::cerr << "Error: Invalid register type" << std::endl;
+        }
+    }
 };
 
 class CPU {
@@ -96,6 +116,7 @@ public:
     Instruction current_instruction;
     bool halted;
     bool stepping;
+    bool interrupt_master_enable;
 
     uint16_t reverse(uint16_t num);
     CPU();
@@ -104,7 +125,7 @@ public:
     RegisterFile regs;
     std::shared_ptr<MMU> bus;
 
-    void cpu_step();
+    bool cpu_step();
     void fetch_instruction();
     void decode_instruction();
     void execute_instruction(const Instruction& instruction);
