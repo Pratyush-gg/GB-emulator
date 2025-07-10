@@ -7,7 +7,7 @@
 #include <cstring>
 #include <unordered_map>
 
-bool Cartridge::cart_load(const std::string filename) {
+bool Cartridge::cart_load(const std::string &filename) {
     this->filename = filename;
     std::ifstream f1(filename, std::ios::binary);
 

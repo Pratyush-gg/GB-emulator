@@ -28,7 +28,7 @@ public:
     std::vector<uint8_t> rom_data;
     Header cart_header;
 
-    bool cart_load(const std::string filename);
+    bool cart_load(const std::string &filename);
     void print_cart_info();
 
     uint8_t cart_read(uint16_t address);

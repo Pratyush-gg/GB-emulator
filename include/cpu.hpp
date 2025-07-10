@@ -1,6 +1,5 @@
 #pragma once
 
-#include "emu.hpp"
 #include "instructions.hpp"
 #include "mmu.hpp"
 
@@ -41,11 +40,9 @@ public:
 };
 
 class RegisterFile {
-
-private:
+public:
     uint8_t _a, _b, _c, _d, _e, _h, _l;
 
-public:
     FlagRegister flags;
     uint16_t SP, PC;
 
@@ -58,12 +55,7 @@ public:
 
 class CPU {
 public:
-
-    CPU(const std::shared_ptr<Emulator> _emulator, 
-        const std::shared_ptr<MMU> _mmu):
-        emulator(_emulator),
-        bus(_mmu)
-    {}
+    CPU(const std::shared_ptr<MMU> _mmu): bus(_mmu) {}
 
     uint16_t fetch_data;
     uint16_t mem_dest;
@@ -75,15 +67,23 @@ public:
     bool stepping;
     bool interrupt_master_enable;
 
-    uint16_t reverse(uint16_t num);
 
     RegisterFile regs;
+
+    int cpu_step(); 
+    int fetch_instruction();
+    int decode_instruction();
+    int execute_instruction(const Instruction& instruction);
+
+private:
     std::shared_ptr<MMU> bus;
-    std::shared_ptr<Emulator> emulator;
 
-    bool cpu_step();
-    void fetch_instruction();
-    void decode_instruction();
-    void execute_instruction(const Instruction& instruction);
+    uint16_t reverse(uint16_t num);
+
+    bool check_condition(const Instruction& instruction);
+    // ts returns the number of cycles taken now
+    int process_NOP();
+    int process_DI();
+    int process_JP();
+    int process_XOR();
 };
-

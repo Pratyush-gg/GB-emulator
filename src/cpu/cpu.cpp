@@ -1,55 +1,53 @@
 #include "../../include/cpu.hpp"
 #include "../../include/instructions.hpp"
-#include "../../include/process_instructions.hpp"
 
 #include <iostream>
 
-void CPU::fetch_instruction() {
+int CPU::fetch_instruction() {
     current_opcode = bus->read_data(regs.PC);
     regs.PC++;
     current_instruction = instructions[current_opcode];
     if (current_instruction.type == INST_TYPE::IN_NONE) {
         std::cerr << "Error: Unknown instruction at PC: " << std::hex << regs.PC - 1 << std::dec << std::endl;
-        return;
+        return 0;
     }
-    emulator->cycles += 4;
+    return 4;
 }
 
 //TODO
 
-void CPU::execute_instruction(const Instruction& instruction) {
+int CPU::execute_instruction(const Instruction& instruction) {
     switch (instruction.type) {
-        case INST_TYPE::IN_NOP:
-            process_NOP(*this);
-            break;
-        case INST_TYPE::IN_DI:
-            process_DI(*this);
-            break;
-        case INST_TYPE::IN_JP:
-            process_JP(*this);
-            break;
-        case INST_TYPE::IN_XOR:
-            process_XOR(*this);
-            break;
+        case INST_TYPE::IN_NOP: return process_NOP();
+        case INST_TYPE::IN_DI:  return process_DI();
+        case INST_TYPE::IN_JP:  return process_JP();
+        case INST_TYPE::IN_XOR: return process_XOR();
+
         default:
-            std::cerr << "Error: Unhandled instruction type: " << static_cast<int>(instruction.type) << std::endl;
+            std::cerr << "Error: Unhandled instruction type: " << 
+                static_cast<int>(instruction.type) << std::endl;
             break;
     }
+    return 0;
 }
 
-bool CPU::cpu_step() {
+int CPU::cpu_step() {
     if (!halted) {
 
-        fetch_instruction();
-        decode_instruction();
+        int num_cycles = 0;
+
+        num_cycles += fetch_instruction();
+        num_cycles += decode_instruction();
 
         std::cout << "PC: " << std::hex << regs.PC << " Opcode: " << std::hex << static_cast<int>(current_opcode) << std::dec;
         std::cout << " Instruction: " << static_cast<int>(current_instruction.type) << " Mode: " << static_cast<int>(current_instruction.mode);
         std::cout << bus->read_data(regs.PC) << " " << bus->read_data(regs.PC + 1) << std::endl;
 
-        execute_instruction(current_instruction);
+        num_cycles += execute_instruction(current_instruction);
+
+        return num_cycles;
     }
-    return true;
+    return 0;
 }
 
 // void CPU::decode_instruction() {
