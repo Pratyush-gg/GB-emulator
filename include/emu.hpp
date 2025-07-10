@@ -1,17 +1,28 @@
 #pragma once
 #include <cstdint>
+#include <memory>
+
+#include "cpu.hpp"
 
 class Emulator {
-public:
+private:
     bool running;
     bool paused;
     uint64_t cycles;
 
-    Emulator():
-        running(true),
-        paused(false),
-        cycles(0)
-    {}
+    std::shared_ptr<CPU> cpu;
+    std::shared_ptr<MMU> bus;
+    std::shared_ptr<Cartridge> cart;
 
-    int emu_run(int argc, char** argv);
+    void pollInput();
+    void updateState();
+    void renderScreen();
+
+    // add extra SDL shit
+
+public:
+    Emulator(const std::string& rom_filename);
+    ~Emulator();
+
+    void run();
 };

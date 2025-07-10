@@ -7,13 +7,13 @@
 #include <cstring>
 #include <unordered_map>
 
-bool Cartridge::cart_load(const std::string &filename) {
+Cartridge::Cartridge(const std::string &filename) {
     this->filename = filename;
     std::ifstream f1(filename, std::ios::binary);
 
     if (!f1.is_open()) {
         std::cerr << "Error: Could not open file " << filename << std::endl;
-        return false;
+        exit(1);
     }
 
     std::cout << "Loading cartridge: " << filename << std::endl;
@@ -28,7 +28,7 @@ bool Cartridge::cart_load(const std::string &filename) {
 
     if (this->rom_size < HEADER_OFFSET + sizeof(Header)) {
         std::cerr << "Error: File too small to contain header " << filename << std::endl;
-        return false;
+        exit(1);
     }
 
     f1.read(reinterpret_cast<char*>(this->rom_data.data()), this->rom_size);
@@ -49,7 +49,6 @@ bool Cartridge::cart_load(const std::string &filename) {
     } else {
         std::cerr << "Warning: Checksum does not match!" << std::endl;
     }
-    return true;
 }
 
 template<typename T> // template to accomodate both uint8_t and uint16_t
