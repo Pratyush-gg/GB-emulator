@@ -5,23 +5,23 @@
 #include <string>
 #include <vector>
 
-class Cartridge {
-    struct Header {
-        uint8_t entry_point[4]; // 0100 - 0103
-        uint8_t logo[30]; // 0104 - 0133
-        char title[16]; // 0134 - 0143
-        uint16_t license_code; // 0144 - 0145
-        uint8_t sgb_flag; // 0146
-        uint8_t cart_type; // 0147
-        uint8_t rom_size; // 0148
-        uint8_t ram_size; // 0149
-        uint8_t dest_code; // 014A
-        uint8_t old_license_code; // 014B
-        uint8_t mask_rom_version; // 014C
-        uint8_t check_sum; // 014D
-        uint16_t global_check_sum; // 014E - 014F
-    };
+struct __attribute__((packed)) Header {
+    uint8_t entry_point[4]; // 0100 - 0103
+    uint8_t logo[0x30]; // 0104 - 0133
+    char title[16]; // 0134 - 0143
+    uint16_t license_code; // 0144 - 0145
+    uint8_t sgb_flag; // 0146
+    uint8_t cart_type; // 0147
+    uint8_t rom_size; // 0148
+    uint8_t ram_size; // 0149
+    uint8_t dest_code; // 014A
+    uint8_t old_license_code; // 014B
+    uint8_t mask_rom_version; // 014C
+    uint8_t check_sum; // 014D
+    uint16_t global_check_sum; // 014E - 014F
+};
 
+class Cartridge {
 public:
     Cartridge(const std::string &filename);
 

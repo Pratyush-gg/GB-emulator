@@ -70,4 +70,4 @@ clean:
 # NOTE: You must provide a valid ROM file path!
 run: all
 	@echo "Running emulator..."
-	./$(TARGET) path/to/your/rom.gb
+	./$(TARGET) roms/Tetris.gb

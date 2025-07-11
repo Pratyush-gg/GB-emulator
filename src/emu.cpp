@@ -21,6 +21,7 @@ Emulator::Emulator(const std::string& rom_filename):
 }
 
 void Emulator::run() {
+
     while (running) {
         if (paused) {
             continue;

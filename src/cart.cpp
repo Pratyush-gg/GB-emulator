@@ -22,7 +22,7 @@ Cartridge::Cartridge(const std::string &filename) {
 
     f1.seekg(0, std::ios::end);
     this->rom_size = f1.tellg();
-    this->rom_data.reserve(this->rom_size);
+    this->rom_data.resize(this->rom_size);
 
     f1.seekg(0, std::ios::beg);
 
@@ -34,21 +34,51 @@ Cartridge::Cartridge(const std::string &filename) {
     f1.read(reinterpret_cast<char*>(this->rom_data.data()), this->rom_size);
     f1.close();
 
-    std::memcpy(&this->cart_header, this->rom_data.data() + HEADER_OFFSET, sizeof(cart_header));
+    std::cout << "Size of Header struct: " << sizeof(Header) << std::endl;
+
+    std::cout << "Parsed title: " << cart_header.title << std::endl;
+    std::printf("Parsed cart_type: 0x%02X\n", cart_header.cart_type);
+    std::printf("Parsed license_code: 0x%02X\n", cart_header.license_code);
+
+    std::string manual_title(reinterpret_cast<char*>(&rom_data[0x134]), 16);
+    std::cout << "Manually extracted title: " << manual_title << std::endl;
+
+
+    std::cout << "Header starts with: ";
+    for (int i = 0; i < 16; ++i) {
+        std::printf("%02X ", this->rom_data[0x100 + i]);
+    }
+    std::cout << std::endl;
+
+
+    std::cout << "ROM[0x0134–0x0143] bytes (title area): ";
+    for (int i = 0x134; i <= 0x143; ++i) {
+        std::printf("%02X ", this->rom_data[i]);
+    }
+    std::cout << std::endl;
+
+    std::memcpy(&this->cart_header, this->rom_data.data() + HEADER_OFFSET, sizeof(Header));
     this->cart_header.title[15] = '\0';
 
     std::cout << "Cartridge loaded successfully." << std::endl;
 
     uint16_t calculated_checksum = 0;
-    for (uint16_t i = 0x0134; i < 0x014C; ++i) {
-        calculated_checksum -= this->rom_data[i] - 1;
+    for (uint16_t i = 0x0134; i <= 0x014C; ++i) {
+        calculated_checksum  = calculated_checksum - this->rom_data[i] - 1;
     }
 
-    if ((calculated_checksum & 0xFF) == this->cart_header.check_sum) {
+    if (calculated_checksum == this->cart_header.check_sum) {
         std::cout << "Checksum matches." << std::endl;
     } else {
         std::cerr << "Warning: Checksum does not match!" << std::endl;
     }
+    std::cout << "ROM first few bytes: ";
+    for (int i = 0; i < 16; ++i) {
+        std::printf("%02X ", this->rom_data[i]);
+    }
+    std::cout << std::endl;
+
+    print_cart_info();
 }
 
 template<typename T> // template to accomodate both uint8_t and uint16_t
@@ -77,6 +107,11 @@ void Cartridge::print_cart_info() {
     //     cout << "Error: No cartridge header loaded." << endl;
     //     return;
     // }
+    std::cout << "Raw title bytes: ";
+    for (int i = 0; i < 16; ++i) {
+        std::printf("%02X ", static_cast<uint8_t>(this->cart_header.title[i]));
+    }
+    std::cout << std::endl;
     std::cout << "Cartridge Information:" << std::endl;
     std::cout << "File: " << this->filename << std::endl;
     std::cout << "Title: " << this->cart_header.title << std::endl;
