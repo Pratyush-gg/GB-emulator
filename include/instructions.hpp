@@ -126,4 +126,5 @@ struct Instruction {
         : type(t), mode(m), reg1(r1), reg2(r2), condition(c), param(p) {}
 };
 
-extern const Instruction instructions[256];
+extern Instruction instructions[256];
+void init_instructions();

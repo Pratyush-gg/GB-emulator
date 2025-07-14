@@ -50,3 +50,23 @@ int CPU::process_XOR() {
     regs.flags.set_z(regs._a == 0);
     return 0;
 }
+
+int CPU::process_LD() {
+    if (dest_is_mem) {
+        if (current_instruction.reg2 >= REG_TYPE::RT_AF)
+        {
+            bus->write_data16(mem_dest, fetch_data);
+        }
+        else {
+            bus->write_data(mem_dest, fetch_data);
+        }
+        return 4;
+    }
+
+    if (current_instruction.mode == ADDR_MODE::AM_HL_SPR) {
+        regs.flags.set_h((regs.read_register(current_instruction.reg2.value()) & 0x0F) + (fetch_data & 0x0F) > 0x10);
+
+        regs.flags.set_c((regs.read_register(current_instruction.reg2.value()) & 0xFF) + (fetch_data & 0xFF) >= 0x100);
+    }
+    // TODO
+}

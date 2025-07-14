@@ -66,7 +66,6 @@ public:
     bool stepping;
     bool interrupt_master_enable;
 
-
     RegisterFile regs;
 
     int cpu_step();
@@ -85,4 +84,5 @@ private:
     int process_DI();
     int process_JP();
     int process_XOR();
+    int process_LD();
 };

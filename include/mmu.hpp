@@ -32,5 +32,7 @@ public:
         // joypad(_joypad)
     {}
     uint8_t read_data(uint16_t address);
-    // void write_data(uint16_t, uint8_t value);
+    void write_data(uint16_t, uint8_t value);
+    uint16_t read_data16(uint16_t address);
+    void write_data16(uint16_t address, uint16_t value);
 };

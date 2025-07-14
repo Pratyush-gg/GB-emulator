@@ -66,7 +66,7 @@ Cartridge::Cartridge(const std::string &filename) {
     for (uint16_t i = 0x0134; i <= 0x014C; ++i) {
         calculated_checksum  = calculated_checksum - this->rom_data[i] - 1;
     }
-
+    calculated_checksum &= 0xFF;
     if (calculated_checksum == this->cart_header.check_sum) {
         std::cout << "Checksum matches." << std::endl;
     } else {
