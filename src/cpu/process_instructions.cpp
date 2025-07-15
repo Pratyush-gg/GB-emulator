@@ -65,8 +65,11 @@ int CPU::process_LD() {
 
     if (current_instruction.mode == ADDR_MODE::AM_HL_SPR) {
         regs.flags.set_h((regs.read_register(current_instruction.reg2.value()) & 0x0F) + (fetch_data & 0x0F) > 0x10);
-
         regs.flags.set_c((regs.read_register(current_instruction.reg2.value()) & 0xFF) + (fetch_data & 0xFF) >= 0x100);
+
+        regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg2.value()) + (char)fetch_data);
+        return 0;
     }
-    // TODO
+
+    regs.set_register(current_instruction.reg1.value(), fetch_data);
 }
