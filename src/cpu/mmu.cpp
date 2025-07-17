@@ -7,24 +7,22 @@ uint8_t MMU::read_data(uint16_t address) {
     if (address < 0x8000) {
         return cartridge->cart_read(address);
     }
-    else if (address < 0xA000) {
-        //TODO: Implement VRAM read
-        std::cerr << "Error: Attempt to read from VRAM address: " << std::hex << address << std::dec << std::endl;
-        not_implemented("read_data VRAM");
+    else if (address < 0xA000) { 
+        return ppu->read_vram(address);
     }
     else if (address < 0xC000) {
         return cartridge->cart_read(address);
     }
     else if (address < 0xE000) {
-        // TODO: Implement WRAM read
-        not_implemented("read_data WRAM");
+		if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE) 
+			throw std::out_of_range("WRAM write out of bounds");
+		return wram[address - WRAM_OFFSET];
     }
     else if (address < 0xFE00) {
         return 0;
     }
     else if (address < 0xFEA0) {
-        // TODO: Implement OAM read
-        not_implemented("read_data OAM");
+        ppu->read_oam(address);
     }
     else if (address < 0xFF00) {
         return 0;
@@ -38,8 +36,9 @@ uint8_t MMU::read_data(uint16_t address) {
         not_implemented("read_data Interrupt Enable register");
     }
     else {
-        //TODO: Implement HRAM read
-        not_implemented("read_data HRAM");
+		if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE) 
+			throw std::out_of_range("HRAM write out of bounds");
+        return hram[address - HRAM_OFFSET];
     }
 }
 
@@ -49,8 +48,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         not_implemented("cart_write");
     }
     else if (address < 0xA000) {
-        //TODO: Implement VRAM write
-        not_implemented("write_data VRAM");
+        ppu->write_vram(address, value);
     }
     else if (address < 0xC000) {
         //TODO: Implement cartridge write

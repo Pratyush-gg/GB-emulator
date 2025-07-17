@@ -32,6 +32,15 @@ private:
     // std::shared_ptr<Timer> timer;
     // std::shared_ptr<JoyPad> joypad;
 
+	static constexpr uint16_t WRAM_OFFSET = 0xC000;
+    static constexpr uint16_t WRAM_SIZE = 0x2000;
+
+	static constexpr uint16_t HRAM_OFFSET = 0xFF80;
+	static constexpr uint16_t HRAM_SIZE = 0x007F;
+
+	std::array<uint8_t, WRAM_SIZE> wram; 
+	std::array<uint8_t, HRAM_SIZE> hram; 
+
 public:
     MMU(std::shared_ptr<Cartridge> _cartridge
         // std::shared_ptr<PicturePU> _ppu,
