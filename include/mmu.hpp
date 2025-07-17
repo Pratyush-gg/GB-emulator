@@ -1,5 +1,6 @@
 #pragma once
 #include "cart.hpp"
+#include "mmu/ppu.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -19,7 +20,6 @@
 // FFFF	FFFF	Interrupt Enable register (IE)
 
 // TODO: Implement all this one by one
-class PicturePU;
 class AudioPU;
 class Timer;
 class JoyPad;
@@ -27,7 +27,7 @@ class JoyPad;
 class MMU {
 private:
     std::shared_ptr<Cartridge> cartridge;
-    // std::shared_ptr<PicturePU> ppu;
+    std::shared_ptr<PicturePU> ppu;
     // std::shared_ptr<AudioPU> apu;
     // std::shared_ptr<Timer> timer;
     // std::shared_ptr<JoyPad> joypad;

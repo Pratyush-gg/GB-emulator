@@ -42,10 +42,10 @@ int CPU::cpu_step() {
         std::cout << "PC: " << std::hex << regs.PC-1 << " Opcode: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(current_opcode) << std::dec << std::endl;
         std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC)) << " " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC + 1)) << std::endl;
 
-        int x = execute_instruction(current_instruction);
+        int res = execute_instruction(current_instruction);
 
-        if (x == 1) return 0;
-        else num_cycles += x;
+        if (res == 1) return 0;
+        else num_cycles += res;
 
         return num_cycles;
     }
