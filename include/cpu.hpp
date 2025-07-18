@@ -46,8 +46,7 @@ public:
     FlagRegister flags;
     uint16_t SP, PC;
 
-    RegisterFile() : SP(0xFFFE), PC(0x0100),
-                     _a(0), _b(0), _c(0), _d(0), _e(0), _h(0), _l(0) {}
+    RegisterFile() : SP(0xFFFE), PC(0x0100), _a(1), _b(0), _c(0), _d(0), _e(0), _h(0), _l(0) {}
 
     uint16_t read_register(REG_TYPE reg);
     void set_register(REG_TYPE reg, uint16_t value);
@@ -79,10 +78,19 @@ private:
     uint16_t reverse(uint16_t num);
 
     bool check_condition(const Instruction& instruction);
+
+    void stack_push(uint8_t value);
+    void stack_push16(uint16_t value);
+    uint8_t stack_pop();
+    uint16_t stack_pop16();
     // ts returns the number of cycles taken now
     int process_NOP();
     int process_DI();
     int process_JP();
     int process_XOR();
     int process_LD();
+    int process_LDH();
+    int process_PUSH();
+    int process_POP();
 };
+

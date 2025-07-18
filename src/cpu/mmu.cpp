@@ -7,14 +7,14 @@ uint8_t MMU::read_data(uint16_t address) {
     if (address < 0x8000) {
         return cartridge->cart_read(address);
     }
-    else if (address < 0xA000) { 
+    else if (address < 0xA000) {
         return ppu->read_vram(address);
     }
     else if (address < 0xC000) {
         return cartridge->cart_read(address);
     }
     else if (address < 0xE000) {
-		if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE) 
+		if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE)
 			throw std::out_of_range("WRAM write out of bounds");
 		return wram[address - WRAM_OFFSET];
     }
@@ -32,11 +32,10 @@ uint8_t MMU::read_data(uint16_t address) {
         not_implemented("read_data I/O registers");
     }
     else if (address == 0xFFFF) {
-        //TODO: Implement Interrupt Enable register read
-        not_implemented("read_data Interrupt Enable register");
+        return ie_register;
     }
     else {
-		if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE) 
+		if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE)
 			throw std::out_of_range("HRAM write out of bounds");
         return hram[address - HRAM_OFFSET];
     }
@@ -55,7 +54,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         not_implemented("cart_write");
     }
     else if (address < 0xE000) {
-        if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE) 
+        if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE)
 			throw std::out_of_range("WRAM write out of bounds");
 		wram[address - WRAM_OFFSET] = value;
     }
@@ -73,11 +72,10 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         not_implemented("write_data I/O registers");
     }
     else if (address == 0xFFFF) {
-        //TODO: Implement Interrupt Enable register write
-        not_implemented("write_data Interrupt Enable register");
+        ie_register = value;
     }
     else {
-		if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE) 
+		if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE)
 			throw std::out_of_range("HRAM write out of bounds");
 		hram[address - HRAM_OFFSET] = value;
     }

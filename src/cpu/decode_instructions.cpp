@@ -27,6 +27,8 @@ int CPU::decode_instruction() {
             regs.PC++;
             return 4;
 
+        case ADDR_MODE::AM_R_D16:
+
         case ADDR_MODE::AM_D16:
             fetch_data = bus->read_data(regs.PC) | (bus->read_data(regs.PC + 1) << 8);
             regs.PC += 2;
@@ -115,6 +117,8 @@ int CPU::decode_instruction() {
             dest_is_mem = true;
             fetch_data = bus->read_data(mem_dest);
             return 4;
+
+        case ADDR_MODE::AM_A16_R:
 
         case ADDR_MODE::AM_R_A16: {
             uint16_t addr = bus->read_data(regs.PC) | (bus->read_data(regs.PC + 1) << 8);

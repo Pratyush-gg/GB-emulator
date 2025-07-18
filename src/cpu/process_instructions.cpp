@@ -1,5 +1,6 @@
 #include "../../include/cpu.hpp"
 #include "../../include/instructions.hpp"
+#include "../../include/mmu.hpp"
 
 #include <iostream>
 
@@ -25,6 +26,28 @@ bool CPU::check_condition(const Instruction& instruction) {
             std::cerr << "Error: Unknown condition type" << std::endl;
             return false;
     }
+}
+
+void CPU::stack_push(uint8_t value) {
+    regs.SP--;
+    bus->write_data(regs.SP, value);
+}
+
+void CPU::stack_push16(uint16_t value) {
+    regs.SP -= 2;
+    bus->write_data16(regs.SP, value);
+}
+
+uint8_t CPU::stack_pop() {
+    uint8_t value = bus->read_data(regs.SP);
+    regs.SP++;
+    return value;
+}
+
+uint16_t CPU::stack_pop16() {
+    uint16_t value = bus->read_data16(regs.SP);
+    regs.SP += 2;
+    return value;
 }
 
 int CPU::process_NOP() {
@@ -72,4 +95,33 @@ int CPU::process_LD() {
     }
 
     regs.set_register(current_instruction.reg1.value(), fetch_data);
+}
+
+int CPU::process_LDH() {
+    if (current_instruction.reg1 == REG_TYPE::RT_A) {
+        regs.set_register(current_instruction.reg1.value(), bus->read_data(0xFF00 | fetch_data));
+    }
+    else {
+        bus->write_data(0xFF00 | fetch_data, regs.read_register(REG_TYPE::RT_A));
+    }
+    return 4;
+}
+
+int CPU::process_PUSH() {
+    uint16_t high = (regs.read_register(current_instruction.reg1.value()) >> 8) & 0xFF;
+    uint16_t low = regs.read_register(current_instruction.reg1.value()) & 0xFF;
+    stack_push(high);
+    stack_push(low);
+    return 12;
+}
+
+int CPU::process_POP() {
+    uint16_t low = stack_pop();
+    uint16_t high = stack_pop();
+    regs.set_register(current_instruction.reg1.value(), (high << 8) | low);
+
+    if (current_instruction.reg1 == REG_TYPE::RT_AF) {
+        regs.set_register(current_instruction.reg1.value(), ((high << 8) | low) & 0xFFF0);
+    }
+    return 12;
 }

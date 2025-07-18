@@ -5,7 +5,14 @@
 #include <string>
 #include <vector>
 
-struct __attribute__((packed)) Header {
+#ifdef _MSC_VER
+    #pragma pack(push, 1)
+    struct Header {
+#elif defined(__GNUC__)
+    struct __attribute__((packed)) Header {
+#else
+    struct Header {
+#endif
     uint8_t entry_point[4]; // 0100 - 0103
     uint8_t logo[0x30]; // 0104 - 0133
     char title[16]; // 0134 - 0143
@@ -20,6 +27,10 @@ struct __attribute__((packed)) Header {
     uint8_t check_sum; // 014D
     uint16_t global_check_sum; // 014E - 014F
 };
+
+#ifdef _MSC_VER
+    #pragma pack(pop)
+#endif
 
 class Cartridge {
 public:

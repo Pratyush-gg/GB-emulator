@@ -23,6 +23,9 @@ int CPU::execute_instruction(const Instruction& instruction) {
         case INST_TYPE::IN_JP:  return process_JP();
         case INST_TYPE::IN_XOR: return process_XOR();
         case INST_TYPE::IN_LD:  return process_LD();
+        case INST_TYPE::IN_LDH: return process_LDH();
+        case INST_TYPE::IN_PUSH: return process_PUSH();
+        case INST_TYPE::IN_POP:  return process_POP();
 
         default:
             std::cerr << "Error: Unhandled instruction type: " << static_cast<int>(instruction.type) << std::endl;
@@ -33,13 +36,18 @@ int CPU::execute_instruction(const Instruction& instruction) {
 
 int CPU::cpu_step() {
     if (!halted) {
+        uint16_t prev_PC = regs.PC;
 
         int num_cycles = 0;
 
         num_cycles += fetch_instruction();
         num_cycles += decode_instruction();
 
-        std::cout << "PC: " << std::hex << regs.PC-1 << " Opcode: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(current_opcode) << std::dec << std::endl;
+        std::cout << "PC: " << std::hex << prev_PC << std::dec << " Opcode: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(current_opcode) << std::dec;
+        std::cout << " A: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._a);
+        std::cout << " BC: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._b) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._c) << std::dec;
+        std::cout << " DE: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._d) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._e) << std::dec;
+        std::cout << " HL: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._h) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._l) << std::dec << std::endl;
         std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC)) << " " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC + 1)) << std::endl;
 
         int res = execute_instruction(current_instruction);

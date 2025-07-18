@@ -1,0 +1,3 @@
+/mnt/c/Pratyush/study/GB-emulator/build/CMakeFiles/gb-emulator.dir
+/mnt/c/Pratyush/study/GB-emulator/build/CMakeFiles/edit_cache.dir
+/mnt/c/Pratyush/study/GB-emulator/build/CMakeFiles/rebuild_cache.dir

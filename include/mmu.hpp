@@ -38,8 +38,10 @@ private:
 	static constexpr uint16_t HRAM_OFFSET = 0xFF80;
 	static constexpr uint16_t HRAM_SIZE = 0x007F;
 
-	std::array<uint8_t, WRAM_SIZE> wram; 
-	std::array<uint8_t, HRAM_SIZE> hram; 
+	std::array<uint8_t, WRAM_SIZE> wram;
+	std::array<uint8_t, HRAM_SIZE> hram;
+
+    uint8_t ie_register;
 
 public:
     MMU(std::shared_ptr<Cartridge> _cartridge
