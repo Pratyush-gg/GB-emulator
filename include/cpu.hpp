@@ -92,5 +92,16 @@ private:
     int process_LDH();
     int process_PUSH();
     int process_POP();
+    int process_JR();
+    int process_CALL();
+    int process_RST();
+    int process_RET();
+    int process_RETI();
+    int process_INC();
+    int process_DEC();
+    int process_SUB();
+    int process_ADD();
+    int process_ADC();
+    int process_SBC();
 };
 
