@@ -85,9 +85,13 @@ private:
     uint16_t stack_pop16();
     // ts returns the number of cycles taken now
     int process_NOP();
+    int process_STOP();
     int process_DI();
     int process_JP();
+    int process_AND();
     int process_XOR();
+    int process_OR();
+    int process_CP();
     int process_LD();
     int process_LDH();
     int process_PUSH();
@@ -103,5 +107,15 @@ private:
     int process_ADD();
     int process_ADC();
     int process_SBC();
+    int process_RLCA();
+    int process_RRCA();
+    int process_RLA();
+    int process_RRA();
+    int process_CPL();
+    int process_DAA();
+    int process_CCF();
+    int process_SCF();
+    int process_HALT();
+    int process_CB();
 };
 

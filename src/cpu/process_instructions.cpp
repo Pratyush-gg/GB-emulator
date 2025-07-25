@@ -54,6 +54,12 @@ int CPU::process_NOP() {
     return 0;
 }
 
+int CPU::process_STOP() {
+    std::cout << "STOP instruction encountered. CPU halted." << std::endl;
+    this->halted = true;
+    exit(0);
+}
+
 int CPU::process_DI() {
     this->interrupt_master_enable = false;
     return 0;
@@ -114,10 +120,42 @@ int CPU::process_RETI() {
     return cycles;
 }
 
+int CPU::process_AND() {
+    regs.set_register(REG_TYPE::RT_A, regs.read_register(REG_TYPE::RT_A) & fetch_data);
+    regs.flags.set_z(regs.read_register(REG_TYPE::RT_A) == 0);
+    regs.flags.set_h(true);
+    regs.flags.set_c(false);
+    regs.flags.set_n(false);
+    return 0;
+}
+
+
 int CPU::process_XOR() {
     uint8_t value = fetch_data & 0xFF;
     regs._a ^= value;
     regs.flags.set_z(regs._a == 0);
+    regs.flags.set_h(false);
+    regs.flags.set_c(false);
+    regs.flags.set_n(false);
+    return 0;
+}
+
+int CPU::process_OR() {
+    uint8_t value = fetch_data & 0xFF;
+    regs._a |= value;
+    regs.flags.set_z(regs._a == 0);
+    regs.flags.set_h(false);
+    regs.flags.set_c(false);
+    regs.flags.set_n(false);
+    return 0;
+}
+
+int CPU::process_CP() {
+    int n = (int)regs._a - (int)fetch_data;
+    regs.flags.set_z(n == 0);
+    regs.flags.set_h((regs._a & 0xF) < (fetch_data & 0xF));
+    regs.flags.set_c(n < 0);
+    regs.flags.set_n(true);
     return 0;
 }
 
@@ -303,4 +341,234 @@ int CPU::process_SBC() {
     regs.flags.set_n(true);
 
     return 0;
+}
+
+int CPU::process_RLCA() {
+    uint8_t values = regs.read_register(REG_TYPE::RT_A);
+    bool carry = (values >> 7) & 1;
+    values = (values << 1) | carry;
+    regs.set_register(REG_TYPE::RT_A, values);
+
+    regs.flags.set_z(false);
+    regs.flags.set_n(false);
+    regs.flags.set_h(false);
+    regs.flags.set_c(carry);
+    return 0;
+}
+
+int CPU::process_RRCA() {
+    uint8_t values = regs.read_register(REG_TYPE::RT_A) & 1;
+    regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) >> 1) | (values << 7));
+
+    regs.flags.set_z(false);
+    regs.flags.set_n(false);
+    regs.flags.set_h(false);
+    regs.flags.set_c(values);
+    return 0;
+}
+
+int CPU::process_RLA() {
+    uint8_t values = regs.read_register(REG_TYPE::RT_A);
+    bool carry = regs.flags.c();
+    regs.set_register(REG_TYPE::RT_A, (values << 1) | carry);
+
+    regs.flags.set_z(false);
+    regs.flags.set_n(false);
+    regs.flags.set_h(false);
+    regs.flags.set_c((values >> 7) & 1);
+    return 0;
+}
+
+int CPU::process_RRA() {
+    uint8_t values = regs.read_register(REG_TYPE::RT_A) & 1;
+    regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) >> 1) | (values << 7));
+
+    regs.flags.set_z(false);
+    regs.flags.set_n(false);
+    regs.flags.set_h(false);
+    regs.flags.set_c(values);
+    return 0;
+}
+
+int CPU::process_DAA() {
+    uint8_t a = 0;
+    int carry = 0;
+
+    if (regs.flags.h() || (regs.read_register(REG_TYPE::RT_A) & 0xF) > 9) {
+        a = 6;
+    }
+    if (regs.flags.c() || (!regs.flags.n() && regs.read_register(REG_TYPE::RT_A) > 0x99)) {
+        a |= 0x60;
+        carry = 1;
+    }
+
+    regs.set_register(REG_TYPE::RT_A, regs.read_register(REG_TYPE::RT_A) + (regs.flags.n() ? -a : a));
+    regs.flags.set_z(regs.read_register(REG_TYPE::RT_A) == 0);
+    regs.flags.set_h(false);
+    regs.flags.set_c(carry);
+    return 0;
+}
+
+int CPU::process_CPL() {
+    regs.set_register(REG_TYPE::RT_A, ~regs.read_register(REG_TYPE::RT_A));
+
+    regs.flags.set_n(true);
+    regs.flags.set_h(true);
+    return 0;
+}
+
+int CPU::process_SCF() {
+    regs.flags.set_c(true);
+    regs.flags.set_n(false);
+    regs.flags.set_h(false);
+    return 0;
+}
+
+int CPU::process_CCF() {
+    bool carry = regs.flags.c() ^ 1;
+    regs.flags.set_c(carry);
+    regs.flags.set_n(false);
+    regs.flags.set_h(false);
+    return 0;
+}
+
+int CPU::process_HALT() {
+    std::cout << "HALT instruction encountered. CPU halted." << std::endl;
+    this->halted = true;
+    return 0;
+}
+
+int CPU::process_CB() {
+    int cycles = 0;
+    uint8_t op = fetch_data;
+    register REG_TYPE reg;
+    switch (op & 0b111) {
+        case 0b000: reg = REG_TYPE::RT_B; break;
+        case 0b001: reg = REG_TYPE::RT_C; break;
+        case 0b010: reg = REG_TYPE::RT_D; break;
+        case 0b011: reg = REG_TYPE::RT_E; break;
+        case 0b100: reg = REG_TYPE::RT_H; break;
+        case 0b101: reg = REG_TYPE::RT_L; break;
+        case 0b110: reg = REG_TYPE::RT_HL; break;
+        case 0b111: reg = REG_TYPE::RT_A; break;
+        default:
+            std::cerr << "Error: Unknown Register for CB instruction: " << static_cast<int>(op) << std::endl;
+    }
+    uint8_t bit = (op >> 3) & 0b111;
+    uint8_t bit_op = (op >> 6) & 0b11;
+    uint8_t reg_value = regs.read_register(reg);
+    cycles += 4;
+
+    if (reg == REG_TYPE::RT_HL) {
+        cycles += 8;
+    }
+
+    switch (bit_op) {
+        case 1: {
+            regs.flags.set_z(!(reg_value & (1 << bit)));
+            regs.flags.set_n(false);
+            regs.flags.set_h(true);
+            return cycles;
+        }
+        case 2: {
+            regs.set_register(reg, reg_value & ~(1 << bit));
+            return cycles;
+        }
+        case 3: {
+            regs.set_register(reg, reg_value | (1 << bit));
+            return cycles;
+        }
+    }
+
+    switch (bit) {
+        case 0: {
+            bool setC = false;
+            uint8_t result = (reg_value << 1) & 0xFF;
+
+            if ((reg_value & (1 << 7)) != 0) {
+                result |= 1;
+                setC = true;
+            }
+
+            regs.set_register(reg, result);
+            regs.flags.set_z(result == 0);
+            regs.flags.set_n(false);
+            regs.flags.set_h(false);
+            regs.flags.set_c(setC);
+            return cycles;
+        }
+        case 1: {
+            uint8_t old = reg_value;
+            reg_value >>= 1;
+            reg_value |= old << 7;
+
+            regs.set_register(reg, reg_value);
+            regs.flags.set_z(!reg_value);
+            regs.flags.set_n(false);
+            regs.flags.set_h(false);
+            regs.flags.set_c(old & 1);
+            return cycles;
+        }
+        case 2: {
+            uint8_t old = reg_value;
+            reg_value = (reg_value << 1);
+            reg_value |= regs.flags.c() ? 1 : 0;
+
+            regs.set_register(reg, reg_value);
+            regs.flags.set_z(!reg_value);
+            regs.flags.set_n(false);
+            regs.flags.set_h(false);
+            regs.flags.set_c(old & 0x80);
+            return cycles;
+        }
+        case 3: {
+            uint8_t old = reg_value;
+            reg_value >>= 1;
+            reg_value |= (regs.flags.c() ? 1 : 0) << 7;
+
+            regs.set_register(reg, reg_value);
+            regs.flags.set_z(!reg_value);
+            regs.flags.set_n(false);
+            regs.flags.set_h(false);
+            regs.flags.set_c(old & 1);
+            return cycles;
+        }
+        case 4: {
+            uint8_t old = reg_value;
+            reg_value <<= 1;
+
+            regs.set_register(reg, reg_value);
+            regs.flags.set_z(!reg_value);
+            regs.flags.set_n(false);
+            regs.flags.set_h(false);
+            regs.flags.set_c(old & 0x80);
+            return cycles;
+        }
+        case 5: {
+            regs.set_register(reg, reg_value >> 1);
+            regs.flags.set_z(!reg_value);
+            regs.flags.set_n(false);
+            regs.flags.set_h(false);
+            regs.flags.set_c(reg_value & 1);
+            return cycles;
+        }
+        case 6: {
+            reg_value = ((reg_value & 0xF0) >> 4) | ((reg_value & 0xF) << 4);
+            regs.set_register(reg, reg_value);
+            regs.flags.set_z(reg_value == 0);
+            regs.flags.set_n(false);
+            regs.flags.set_h(false);
+            regs.flags.set_c(false);
+            return cycles;
+        }
+        case 7: {
+            regs.set_register(reg, reg_value >> 1);
+            regs.flags.set_z(!(reg_value >> 1));
+            regs.flags.set_n(false);
+            regs.flags.set_h(false);
+            regs.flags.set_c((reg_value >> 1) & 1);
+            return cycles;
+        }
+    }
+    std::cerr << "Error: Unknown CB instruction: " << static_cast<int>(op) << std::endl;
 }

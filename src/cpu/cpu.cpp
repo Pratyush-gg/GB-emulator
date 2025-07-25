@@ -19,9 +19,13 @@ int CPU::fetch_instruction() {
 int CPU::execute_instruction(const Instruction& instruction) {
     switch (instruction.type) {
         case INST_TYPE::IN_NOP: return process_NOP();
+        case INST_TYPE::IN_STOP: return process_STOP();
         case INST_TYPE::IN_DI:  return process_DI();
         case INST_TYPE::IN_JP:  return process_JP();
+        case INST_TYPE::IN_AND: return process_AND();
         case INST_TYPE::IN_XOR: return process_XOR();
+        case INST_TYPE::IN_OR:  return process_OR();
+        case INST_TYPE::IN_CP:  return process_CP();
         case INST_TYPE::IN_LD:  return process_LD();
         case INST_TYPE::IN_LDH: return process_LDH();
         case INST_TYPE::IN_PUSH: return process_PUSH();
@@ -37,6 +41,16 @@ int CPU::execute_instruction(const Instruction& instruction) {
         case INST_TYPE::IN_ADD:  return process_ADD();
         case INST_TYPE::IN_ADC:  return process_ADC();
         case INST_TYPE::IN_SBC:  return process_SBC();
+        case INST_TYPE::IN_RLCA:  return process_RLCA();
+        case INST_TYPE::IN_RRCA:  return process_RRCA();
+        case INST_TYPE::IN_RLA:   return process_RLA();
+        case INST_TYPE::IN_RRA:   return process_RRA();
+        case INST_TYPE::IN_CPL:  return process_CPL();
+        case INST_TYPE::IN_DAA:  return process_DAA();
+        case INST_TYPE::IN_CCF:   return process_CCF();
+        case INST_TYPE::IN_SCF:   return process_SCF();
+        case INST_TYPE::IN_HALT:  return process_HALT();
+        case INST_TYPE::IN_CB:   return process_CB();
 
         default:
             std::cerr << "Error: Unhandled instruction type: " << static_cast<int>(instruction.type) << std::endl;
