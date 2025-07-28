@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <memory>
+#include <chrono>
+#include <thread>
 
 Emulator::Emulator(const std::string& rom_filename):
     running(true),
@@ -37,6 +39,7 @@ void Emulator::run() {
 }
 
 void Emulator::updateState() {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     int increment_cycles = cpu->cpu_step();
     if (increment_cycles == 0) {
         std::cout << "CPU stopped." << std::endl;

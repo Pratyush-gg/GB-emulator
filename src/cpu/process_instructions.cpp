@@ -456,14 +456,20 @@ int CPU::process_CB() {
     }
     uint8_t bit = (op >> 3) & 0b111;
     uint8_t bit_op = (op >> 6) & 0b11;
-    uint8_t reg_value = regs.read_register(reg);
+
+    // SUPER SUS
+
+    uint8_t reg_value = bus->read_data((regs.read_register(reg)));
+
+    // SUPER SUS
+    std::cout << "Processing CB instruction: " << static_cast<int>(op) << " Bit: " << static_cast<int>(bit) << " Bit Op: " << static_cast<int>(bit_op) << " Reg Value: " << static_cast<int>(reg_value) << std::endl;
     cycles += 4;
 
     if (reg == REG_TYPE::RT_HL) {
         cycles += 8;
     }
 
-    switch (bit_op) {
+    switch (static_cast<int>(bit_op)) {
         case 1: {
             regs.flags.set_z(!(reg_value & (1 << bit)));
             regs.flags.set_n(false);
@@ -480,7 +486,7 @@ int CPU::process_CB() {
         }
     }
 
-    switch (bit) {
+    switch (static_cast<int>(bit)) {
         case 0: {
             bool setC = false;
             uint8_t result = (reg_value << 1) & 0xFF;
@@ -562,13 +568,17 @@ int CPU::process_CB() {
             return cycles;
         }
         case 7: {
-            regs.set_register(reg, reg_value >> 1);
-            regs.flags.set_z(!(reg_value >> 1));
+            uint8_t a = reg_value >> 1;
+            regs.set_register(reg, a);
+            regs.flags.set_z(!a);
             regs.flags.set_n(false);
             regs.flags.set_h(false);
-            regs.flags.set_c((reg_value >> 1) & 1);
+            regs.flags.set_c(reg_value & 1);
             return cycles;
         }
+        default:
+            std::cerr << "Error: Unknown CB instruction: " << static_cast<int>(op) << std::endl;
+            return 0;
     }
     std::cerr << "Error: Unknown CB instruction: " << static_cast<int>(op) << std::endl;
 }

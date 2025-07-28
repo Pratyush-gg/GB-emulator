@@ -46,7 +46,7 @@ public:
     FlagRegister flags;
     uint16_t SP, PC;
 
-    RegisterFile() : SP(0xFFFE), PC(0x0100), _a(1), _b(0), _c(0), _d(0), _e(0), _h(0), _l(0) {}
+    RegisterFile() : SP(0xFFFE), PC(0x0100), _a(1), _b(0), _c(0x13), _d(0), _e(0xD8), _h(0x01), _l(0x4D) { flags.set_byte(0xB0); }
 
     uint16_t read_register(REG_TYPE reg);
     void set_register(REG_TYPE reg, uint16_t value);
