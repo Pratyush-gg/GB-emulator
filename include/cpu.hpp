@@ -52,6 +52,14 @@ public:
     void set_register(REG_TYPE reg, uint16_t value);
 };
 
+enum interrupt_type {
+    it_vblank = 1,
+    it_lcd_stat = 2,
+    it_timer = 4,
+    it_serial = 8,
+    it_joypad = 16,
+};
+
 class CPU {
 public:
     CPU(const std::shared_ptr<MMU> _mmu) : bus(_mmu) {};
@@ -63,7 +71,14 @@ public:
     Instruction current_instruction;
     bool halted;
     bool stepping;
+
     bool interrupt_master_enable;
+    bool enabling_ime;
+    uint8_t interrupt_enable_register;
+    uint8_t interrupt_flags;
+
+    int dbg_msg_size = 0;
+    char dbg_msg[1024] = {0};
 
     RegisterFile regs;
 
@@ -72,21 +87,31 @@ public:
     int decode_instruction();
     int execute_instruction(const Instruction& instruction);
 
-private:
-    std::shared_ptr<MMU> bus;
-
-    uint16_t reverse(uint16_t num);
-
     bool check_condition(const Instruction& instruction);
 
     void stack_push(uint8_t value);
     void stack_push16(uint16_t value);
     uint8_t stack_pop();
     uint16_t stack_pop16();
+
+    void request_interrupt(interrupt_type type);
+    void handle_interrupts();
+    void int_handle(uint16_t address);
+    bool int_check(interrupt_type type, uint16_t address);
+
+    void dbg_update();
+    void dbg_print();
+
+private:
+    std::shared_ptr<MMU> bus;
+
+    uint16_t reverse(uint16_t num);
+
     // ts returns the number of cycles taken now
     int process_NOP();
     int process_STOP();
     int process_DI();
+    int process_EI();
     int process_JP();
     int process_AND();
     int process_XOR();

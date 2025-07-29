@@ -21,6 +21,7 @@ int CPU::execute_instruction(const Instruction& instruction) {
         case INST_TYPE::IN_NOP: return process_NOP();
         case INST_TYPE::IN_STOP: return process_STOP();
         case INST_TYPE::IN_DI:  return process_DI();
+        case INST_TYPE::IN_EI:  return process_EI();
         case INST_TYPE::IN_JP:  return process_JP();
         case INST_TYPE::IN_AND: return process_AND();
         case INST_TYPE::IN_XOR: return process_XOR();
@@ -59,6 +60,71 @@ int CPU::execute_instruction(const Instruction& instruction) {
     return 0;
 }
 
+void CPU::stack_push(uint8_t value) {
+    regs.SP--;
+    bus->write_data(regs.SP, value);
+}
+
+void CPU::stack_push16(uint16_t value) {
+    regs.SP -= 2;
+    bus->write_data16(regs.SP, value);
+}
+
+uint8_t CPU::stack_pop() {
+    uint8_t value = bus->read_data(regs.SP);
+    regs.SP++;
+    return value;
+}
+
+uint16_t CPU::stack_pop16() {
+    uint16_t value = bus->read_data16(regs.SP);
+    regs.SP += 2;
+    return value;
+}
+
+void CPU::int_handle(uint16_t address) {
+    stack_push16(regs.PC);
+    regs.PC = address;
+}
+
+bool CPU::int_check(interrupt_type type, uint16_t address) {
+    if (interrupt_flags & type && interrupt_enable_register & type) {
+        int_handle(address);
+        interrupt_flags &= ~type;
+        halted = false;
+        interrupt_master_enable = false;
+
+        return true;
+    }
+    return false;
+}
+
+void CPU::handle_interrupts() {
+    if (int_check(interrupt_type::it_vblank, 0x0040)) {}
+    else if (int_check(interrupt_type::it_lcd_stat, 0x0048)) {}
+    else if (int_check(interrupt_type::it_timer, 0x0050)) {}
+    else if (int_check(interrupt_type::it_serial, 0x0058)) {}
+    else if (int_check(interrupt_type::it_joypad, 0x0060)) {}
+}
+
+void CPU::dbg_update() {
+    if (bus->read_data(0xFF02) == 0x81) {
+        char c = bus->read_data(0xFF01);
+        dbg_msg[dbg_msg_size++] = c;
+        bus->write_data(0xFF02, 0x00);
+    }
+}
+
+void CPU::dbg_print() {
+    if (dbg_msg[0]) {
+        std::cout << "Debug Message: ";
+        for (int i = 0; i < dbg_msg_size; ++i) {
+            std::cout << dbg_msg[i];
+        }
+        std::cout << std::endl;
+    }
+}
+
 int CPU::cpu_step() {
     if (!halted) {
         uint16_t prev_PC = regs.PC;
@@ -76,6 +142,9 @@ int CPU::cpu_step() {
         std::cout << " HL: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._h) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._l) << std::dec << std::endl;
         std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC)) << " " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC + 1)) << std::endl;
 
+        dbg_update();
+        dbg_print();
+
         int res = execute_instruction(current_instruction);
 
         if (res == 1) return 0;
@@ -83,7 +152,22 @@ int CPU::cpu_step() {
 
         return num_cycles;
     }
-    // Look into this halted paused running thing
+    else {
+        int num_cycles = 4;
+
+        if (interrupt_flags) {
+            halted = false;
+        }
+    }
+
+    if (interrupt_master_enable) {
+        handle_interrupts();
+        enabling_ime = false;
+    }
+    if (enabling_ime) {
+        interrupt_master_enable = true;
+    }
+
     return 0;
 }
 

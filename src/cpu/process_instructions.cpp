@@ -28,40 +28,22 @@ bool CPU::check_condition(const Instruction& instruction) {
     }
 }
 
-void CPU::stack_push(uint8_t value) {
-    regs.SP--;
-    bus->write_data(regs.SP, value);
-}
-
-void CPU::stack_push16(uint16_t value) {
-    regs.SP -= 2;
-    bus->write_data16(regs.SP, value);
-}
-
-uint8_t CPU::stack_pop() {
-    uint8_t value = bus->read_data(regs.SP);
-    regs.SP++;
-    return value;
-}
-
-uint16_t CPU::stack_pop16() {
-    uint16_t value = bus->read_data16(regs.SP);
-    regs.SP += 2;
-    return value;
-}
-
 int CPU::process_NOP() {
     return 0;
 }
 
 int CPU::process_STOP() {
-    std::cout << "STOP instruction encountered. CPU halted." << std::endl;
-    this->halted = true;
-    exit(0);
+    std::cout << "Stopping..." << std::endl;
+    // implementation of STOP instruction
 }
 
 int CPU::process_DI() {
     this->interrupt_master_enable = false;
+    return 0;
+}
+
+int CPU::process_EI() {
+    this->enabling_ime = true;
     return 0;
 }
 
@@ -141,8 +123,7 @@ int CPU::process_XOR() {
 }
 
 int CPU::process_OR() {
-    uint8_t value = fetch_data & 0xFF;
-    regs._a |= value;
+    regs._a |= fetch_data & 0xFF;
     regs.flags.set_z(regs._a == 0);
     regs.flags.set_h(false);
     regs.flags.set_c(false);
@@ -152,8 +133,9 @@ int CPU::process_OR() {
 
 int CPU::process_CP() {
     int n = (int)regs._a - (int)fetch_data;
+    std::cout << "n: " << n << std::endl;
     regs.flags.set_z(n == 0);
-    regs.flags.set_h((regs._a & 0xF) < (fetch_data & 0xF));
+    regs.flags.set_h(((int)regs._a & 0x0F) < ((int)fetch_data & 0x0F));
     regs.flags.set_c(n < 0);
     regs.flags.set_n(true);
     return 0;
@@ -358,7 +340,8 @@ int CPU::process_RLCA() {
 
 int CPU::process_RRCA() {
     uint8_t values = regs.read_register(REG_TYPE::RT_A) & 1;
-    regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) >> 1) | (values << 7));
+    regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) >> 1));
+    regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) | (values << 7)));
 
     regs.flags.set_z(false);
     regs.flags.set_n(false);
@@ -369,19 +352,22 @@ int CPU::process_RRCA() {
 
 int CPU::process_RLA() {
     uint8_t values = regs.read_register(REG_TYPE::RT_A);
-    bool carry = regs.flags.c();
+    uint8_t carry = regs.flags.c();
+    uint8_t c = (values >> 7) & 1;
     regs.set_register(REG_TYPE::RT_A, (values << 1) | carry);
 
     regs.flags.set_z(false);
     regs.flags.set_n(false);
     regs.flags.set_h(false);
-    regs.flags.set_c((values >> 7) & 1);
+    regs.flags.set_c(c);
     return 0;
 }
 
 int CPU::process_RRA() {
     uint8_t values = regs.read_register(REG_TYPE::RT_A) & 1;
-    regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) >> 1) | (values << 7));
+    uint8_t c = regs.flags.c();
+    regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) >> 1));
+    regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) | (c << 7)));
 
     regs.flags.set_z(false);
     regs.flags.set_n(false);
@@ -394,7 +380,7 @@ int CPU::process_DAA() {
     uint8_t a = 0;
     int carry = 0;
 
-    if (regs.flags.h() || (regs.read_register(REG_TYPE::RT_A) & 0xF) > 9) {
+    if (regs.flags.h() || (!regs.flags.h() && (regs.read_register(REG_TYPE::RT_A) & 0xF) > 9)) {
         a = 6;
     }
     if (regs.flags.c() || (!regs.flags.n() && regs.read_register(REG_TYPE::RT_A) > 0x99)) {
@@ -456,12 +442,13 @@ int CPU::process_CB() {
     }
     uint8_t bit = (op >> 3) & 0b111;
     uint8_t bit_op = (op >> 6) & 0b11;
+    uint8_t reg_value;
+    if (reg == REG_TYPE::RT_HL) {
+        reg_value = bus->read_data(regs.read_register(REG_TYPE::RT_HL));
+    } else {
+        reg_value = regs.read_register(reg);
+    }
 
-    // SUPER SUS
-
-    uint8_t reg_value = bus->read_data((regs.read_register(reg)));
-
-    // SUPER SUS
     std::cout << "Processing CB instruction: " << static_cast<int>(op) << " Bit: " << static_cast<int>(bit) << " Bit Op: " << static_cast<int>(bit_op) << " Reg Value: " << static_cast<int>(reg_value) << std::endl;
     cycles += 4;
 
@@ -477,11 +464,19 @@ int CPU::process_CB() {
             return cycles;
         }
         case 2: {
-            regs.set_register(reg, reg_value & ~(1 << bit));
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), reg_value & ~(1 << bit));
+            } else {
+                regs.set_register(reg, reg_value & ~(1 << bit));
+            }
             return cycles;
         }
         case 3: {
-            regs.set_register(reg, reg_value | (1 << bit));
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), reg_value | (1 << bit));
+            } else {
+                regs.set_register(reg, reg_value | (1 << bit));
+            }
             return cycles;
         }
     }
@@ -496,7 +491,11 @@ int CPU::process_CB() {
                 setC = true;
             }
 
-            regs.set_register(reg, result);
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), result);
+            } else {
+                regs.set_register(reg, result);
+            }
             regs.flags.set_z(result == 0);
             regs.flags.set_n(false);
             regs.flags.set_h(false);
@@ -508,7 +507,11 @@ int CPU::process_CB() {
             reg_value >>= 1;
             reg_value |= old << 7;
 
-            regs.set_register(reg, reg_value);
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), reg_value);
+            } else {
+                regs.set_register(reg, reg_value);
+            }
             regs.flags.set_z(!reg_value);
             regs.flags.set_n(false);
             regs.flags.set_h(false);
@@ -520,7 +523,11 @@ int CPU::process_CB() {
             reg_value = (reg_value << 1);
             reg_value |= regs.flags.c() ? 1 : 0;
 
-            regs.set_register(reg, reg_value);
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), reg_value);
+            } else {
+                regs.set_register(reg, reg_value);
+            }
             regs.flags.set_z(!reg_value);
             regs.flags.set_n(false);
             regs.flags.set_h(false);
@@ -532,7 +539,11 @@ int CPU::process_CB() {
             reg_value >>= 1;
             reg_value |= (regs.flags.c() ? 1 : 0) << 7;
 
-            regs.set_register(reg, reg_value);
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), reg_value);
+            } else {
+                regs.set_register(reg, reg_value);
+            }
             regs.flags.set_z(!reg_value);
             regs.flags.set_n(false);
             regs.flags.set_h(false);
@@ -543,7 +554,11 @@ int CPU::process_CB() {
             uint8_t old = reg_value;
             reg_value <<= 1;
 
-            regs.set_register(reg, reg_value);
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), reg_value);
+            } else {
+                regs.set_register(reg, reg_value);
+            }
             regs.flags.set_z(!reg_value);
             regs.flags.set_n(false);
             regs.flags.set_h(false);
@@ -551,8 +566,13 @@ int CPU::process_CB() {
             return cycles;
         }
         case 5: {
-            regs.set_register(reg, reg_value >> 1);
-            regs.flags.set_z(!reg_value);
+            uint8_t a = int8_t(reg_value) >> 1;
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), a);
+            } else {
+                regs.set_register(reg, a);
+            }
+            regs.flags.set_z(!a);
             regs.flags.set_n(false);
             regs.flags.set_h(false);
             regs.flags.set_c(reg_value & 1);
@@ -560,7 +580,11 @@ int CPU::process_CB() {
         }
         case 6: {
             reg_value = ((reg_value & 0xF0) >> 4) | ((reg_value & 0xF) << 4);
-            regs.set_register(reg, reg_value);
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), reg_value);
+            } else {
+                regs.set_register(reg, reg_value);
+            }
             regs.flags.set_z(reg_value == 0);
             regs.flags.set_n(false);
             regs.flags.set_h(false);
@@ -569,7 +593,11 @@ int CPU::process_CB() {
         }
         case 7: {
             uint8_t a = reg_value >> 1;
-            regs.set_register(reg, a);
+            if (reg == REG_TYPE::RT_HL) {
+                bus->write_data(regs.read_register(REG_TYPE::RT_HL), a);
+            } else {
+                regs.set_register(reg, a);
+            }
             regs.flags.set_z(!a);
             regs.flags.set_n(false);
             regs.flags.set_h(false);

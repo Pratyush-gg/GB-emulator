@@ -39,7 +39,7 @@ void Emulator::run() {
 }
 
 void Emulator::updateState() {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     int increment_cycles = cpu->cpu_step();
     if (increment_cycles == 0) {
         std::cout << "CPU stopped." << std::endl;

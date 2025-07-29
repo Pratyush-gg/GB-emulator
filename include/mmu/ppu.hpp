@@ -13,6 +13,10 @@ class PicturePU {
 public:
 	uint8_t read_vram(uint16_t address);
 	void write_vram(uint16_t address, uint8_t value);
+
 	uint8_t read_oam(uint16_t address);
 	void write_oam(uint16_t address, uint8_t value);
+
+	uint8_t io_read(uint16_t address);
+	void io_write(uint16_t address, uint8_t value);
 };

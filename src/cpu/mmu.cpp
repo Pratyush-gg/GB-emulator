@@ -8,28 +8,28 @@ uint8_t MMU::read_data(uint16_t address) {
         return cartridge->cart_read(address);
     }
     else if (address < 0xA000) {
-        return ppu->read_vram(address);
+        // return ppu->read_vram(address);
     }
     else if (address < 0xC000) {
         return cartridge->cart_read(address);
     }
     else if (address < 0xE000) {
-		if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE)
-			throw std::out_of_range("WRAM write out of bounds");
-		return wram[address - WRAM_OFFSET];
+		// if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE)
+		// 	throw std::out_of_range("WRAM write out of bounds");
+		// return wram[address - WRAM_OFFSET];
     }
     else if (address < 0xFE00) {
         return 0;
     }
     else if (address < 0xFEA0) {
-        ppu->read_oam(address);
+        // return ppu->read_oam(address);
+        return 0x0;
     }
     else if (address < 0xFF00) {
         return 0;
     }
     else if (address < 0xFF80) {
-        // TODO: Implement I/O registers read
-        not_implemented("read_data I/O registers");
+        return ppu->io_read(address);
     }
     else if (address == 0xFFFF) {
         return ie_register;
@@ -47,29 +47,28 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         not_implemented("cart_write");
     }
     else if (address < 0xA000) {
-        ppu->write_vram(address, value);
+        // ppu->write_vram(address, value);
     }
     else if (address < 0xC000) {
         //TODO: Implement cartridge write
         not_implemented("cart_write");
     }
     else if (address < 0xE000) {
-        if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE)
-			throw std::out_of_range("WRAM write out of bounds");
-		wram[address - WRAM_OFFSET] = value;
+        // if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE)
+		// 	throw std::out_of_range("WRAM write out of bounds");
+		// wram[address - WRAM_OFFSET] = value;
     }
     else if (address < 0xFE00) {
         return;
     }
     else if (address < 0xFEA0) {
-		ppu->write_oam(address, value);
+		// return ppu->write_oam(address, value);
     }
     else if (address < 0xFF00) {
-        return;
+
     }
     else if (address < 0xFF80) {
-        // TODO: Implement I/O registers write
-        not_implemented("write_data I/O registers");
+        ppu->io_write(address, value);
     }
     else if (address == 0xFFFF) {
         ie_register = value;

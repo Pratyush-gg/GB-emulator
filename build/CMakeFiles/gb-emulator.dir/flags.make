@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/mnt/c/Pratyush/study/GB-emulator/include
 
-CXX_FLAGS = -Wall -Wextra -g -std=gnu++17
+CXX_FLAGS = -g -Wall -Wextra -g -std=gnu++17
 
