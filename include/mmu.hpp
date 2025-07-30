@@ -44,14 +44,14 @@ private:
     uint8_t ie_register;
 
 public:
-    MMU(std::shared_ptr<Cartridge> _cartridge
-        // std::shared_ptr<PicturePU> _ppu,
+    MMU(std::shared_ptr<Cartridge> _cartridge,
+        std::shared_ptr<PicturePU> _ppu
         // std::shared_ptr<AudioPU> _apu,
         // std::shared_ptr<Timer> _timer,
         // std::shared_ptr<JoyPad> _joypad
         ) :
-        cartridge(_cartridge)
-        // ppu(_ppu),
+        cartridge(_cartridge),
+        ppu(_ppu)
         // apu(_apu),
         // timer(_timer),
         // joypad(_joypad)

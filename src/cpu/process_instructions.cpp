@@ -291,12 +291,13 @@ int CPU::process_ADD() {
 
 int CPU::process_SUB() {
     uint16_t values = regs.read_register(current_instruction.reg1.value()) - fetch_data;
-    regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg1.value()) - values);
 
     regs.flags.set_z(values == 0);
-    regs.flags.set_h((regs.read_register(current_instruction.reg1.value()) & 0xF) < (fetch_data & 0xF));
-    regs.flags.set_c(regs.read_register(current_instruction.reg1.value()) < fetch_data);
+    regs.flags.set_h(((int)regs.read_register(current_instruction.reg1.value()) & 0xF) < ((int)fetch_data & 0xF));
+    regs.flags.set_c((int)regs.read_register(current_instruction.reg1.value()) < (int)fetch_data);
     regs.flags.set_n(true);
+
+    regs.set_register(current_instruction.reg1.value(), values);
 
     return 0;
 }
@@ -386,7 +387,7 @@ int CPU::process_DAA() {
     uint8_t a = 0;
     int carry = 0;
 
-    if (regs.flags.h() || (!regs.flags.h() && (regs.read_register(REG_TYPE::RT_A) & 0xF) > 9)) {
+    if (regs.flags.h() || (!regs.flags.n() && (regs.read_register(REG_TYPE::RT_A) & 0xF) > 9)) {
         a = 6;
     }
     if (regs.flags.c() || (!regs.flags.n() && regs.read_register(REG_TYPE::RT_A) > 0x99)) {

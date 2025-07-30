@@ -23,6 +23,7 @@ private:
     void pollInput();
     void updateState();
     void renderScreen();
+    void handleCycles();
 
     // add extra SDL shit
 

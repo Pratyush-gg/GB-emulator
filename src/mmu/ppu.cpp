@@ -1,4 +1,6 @@
 #include "../include/mmu/ppu.hpp"
+#include "../include/cpu.hpp"
+
 
 #include <iostream>
 #include <cstdint>
@@ -38,8 +40,10 @@ uint8_t PicturePU::io_read(uint16_t address) {
 		return serial_data[1];
 	}
 	if (address >= 0xFF04 && address < 0xFF07) {
-		// Handle other I/O registers as needed
-		return 0; // Placeholder for unimplemented I/O registers
+		return cpu->timerRead(address);
+	}
+	if (address == 0xFF0F) {
+		return cpu.interrupt_flags;
 	}
 	std::cout << "Unimplemented I/O read at address: " << std::hex << address << std::dec << std::endl;
 	return 0;
@@ -52,6 +56,14 @@ void PicturePU::io_write(uint16_t address, uint8_t value) {
 	}
 	if (address == 0xFF02) {
 		serial_data[1] = value;
+		return;
+	}
+	if (address >= 0xFF04 && address < 0xFF07) {
+		cpu.timerWrite(address, value);
+		return;
+	}
+	if (address == 0xFF0F) {
+		cpu.interrupt_flags = value;
 		return;
 	}
 	std::cout << "Unimplemented I/O write at address: " << std::hex << address << std::dec << std::endl;
