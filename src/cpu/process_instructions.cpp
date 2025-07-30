@@ -189,10 +189,11 @@ int CPU::process_PUSH() {
 int CPU::process_POP() {
     uint16_t low = stack_pop();
     uint16_t high = stack_pop();
-    regs.set_register(current_instruction.reg1.value(), (high << 8) | low);
+    uint16_t n = (high << 8) | low;
+    regs.set_register(current_instruction.reg1.value(), n);
 
     if (current_instruction.reg1 == REG_TYPE::RT_AF) {
-        regs.set_register(current_instruction.reg1.value(), ((high << 8) | low) & 0xFFF0);
+        regs.set_register(current_instruction.reg1.value(), n & 0xFFF0);
     }
     return 12;
 }
