@@ -2010,6 +2010,11 @@ CMakeFiles/gb-emulator.dir/src/mmu/ppu.cpp.o: ../src/mmu/ppu.cpp \
   /usr/include/c++/11/istream \
   /usr/include/c++/11/bits/istream.tcc
 
+CMakeFiles/gb-emulator.dir/src/ui.cpp.o: ../src/ui.cpp \
+  /usr/include/stdc-predef.h
+
+
+../src/ui.cpp:
 
 ../src/mmu/ppu.cpp:
 

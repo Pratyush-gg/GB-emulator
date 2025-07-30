@@ -36,7 +36,7 @@ private:
     static constexpr uint16_t WRAM_SIZE = 0x2000;
 
 	static constexpr uint16_t HRAM_OFFSET = 0xFF80;
-	static constexpr uint16_t HRAM_SIZE = 0x007F;
+	static constexpr uint16_t HRAM_SIZE = 0x0080;
 
 	std::array<uint8_t, WRAM_SIZE> wram;
 	std::array<uint8_t, HRAM_SIZE> hram;

@@ -110,8 +110,10 @@ void CPU::handle_interrupts() {
 void CPU::dbg_update() {
     if (bus->read_data(0xFF02) == 0x81) {
         char c = bus->read_data(0xFF01);
+
         dbg_msg[dbg_msg_size++] = c;
-        bus->write_data(0xFF02, 0x00);
+
+        bus->write_data(0xFF02, 0);
     }
 }
 
@@ -129,6 +131,9 @@ int CPU::cpu_step() {
     if (!halted) {
         uint16_t prev_PC = regs.PC;
 
+        dbg_update();
+        dbg_print();
+
         int num_cycles = 0;
 
         num_cycles += fetch_instruction();
@@ -141,9 +146,6 @@ int CPU::cpu_step() {
         std::cout << " DE: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._d) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._e) << std::dec;
         std::cout << " HL: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._h) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._l) << std::dec << std::endl;
         std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC)) << " " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC + 1)) << std::endl;
-
-        dbg_update();
-        dbg_print();
 
         int res = execute_instruction(current_instruction);
 

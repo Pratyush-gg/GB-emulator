@@ -18,6 +18,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/mnt/c/Pratyush/study/GB-emulator/src/emu.cpp" "CMakeFiles/gb-emulator.dir/src/emu.cpp.o" "gcc" "CMakeFiles/gb-emulator.dir/src/emu.cpp.o.d"
   "/mnt/c/Pratyush/study/GB-emulator/src/main.cpp" "CMakeFiles/gb-emulator.dir/src/main.cpp.o" "gcc" "CMakeFiles/gb-emulator.dir/src/main.cpp.o.d"
   "/mnt/c/Pratyush/study/GB-emulator/src/mmu/ppu.cpp" "CMakeFiles/gb-emulator.dir/src/mmu/ppu.cpp.o" "gcc" "CMakeFiles/gb-emulator.dir/src/mmu/ppu.cpp.o.d"
+  "/mnt/c/Pratyush/study/GB-emulator/src/ui.cpp" "CMakeFiles/gb-emulator.dir/src/ui.cpp.o" "gcc" "CMakeFiles/gb-emulator.dir/src/ui.cpp.o.d"
   )
 
 # Targets to which this target links.

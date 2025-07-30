@@ -4,13 +4,10 @@
 
 #include <iostream>
 
-// TODO
-
 bool CPU::check_condition(const Instruction& instruction) {
     if (!instruction.condition.has_value()) {
         return true;
     }
-
     switch (instruction.condition.value()) {
         case COND_TYPE::CT_NONE:
             return true;
@@ -56,8 +53,10 @@ int CPU::process_JP() {
 }
 
 int CPU::process_JR() {
+    int8_t rel = (int8_t)(fetch_data & 0xFF);
+    uint16_t address = regs.PC + rel;
     if (check_condition(current_instruction)) {
-        regs.PC += static_cast<int8_t>(fetch_data & 0xFF);
+        regs.PC = address;
         return 4;
     }
     return 0;
@@ -142,23 +141,28 @@ int CPU::process_CP() {
 }
 
 int CPU::process_LD() {
+    int cycles = 0;
     if (dest_is_mem) {
         if (current_instruction.reg2 >= REG_TYPE::RT_AF)
         {
+            cycles += 4;
             bus->write_data16(mem_dest, fetch_data);
         }
         else {
             bus->write_data(mem_dest, fetch_data);
         }
-        return 4;
+        cycles += 4;
+        return cycles;
     }
 
     if (current_instruction.mode == ADDR_MODE::AM_HL_SPR) {
-        regs.flags.set_h((regs.read_register(current_instruction.reg2.value()) & 0x0F) + (fetch_data & 0x0F) > 0x10);
+        regs.flags.set_h((regs.read_register(current_instruction.reg2.value()) & 0xF) + (fetch_data & 0x0F) > 0x10);
         regs.flags.set_c((regs.read_register(current_instruction.reg2.value()) & 0xFF) + (fetch_data & 0xFF) >= 0x100);
+        regs.flags.set_z(false);
+        regs.flags.set_n(false);
 
-        regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg2.value()) + (char)fetch_data);
-        return 0;
+        regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg2.value()) + (int8_t)fetch_data);
+        return cycles;
     }
 
     regs.set_register(current_instruction.reg1.value(), fetch_data);
@@ -169,7 +173,7 @@ int CPU::process_LDH() {
         regs.set_register(current_instruction.reg1.value(), bus->read_data(0xFF00 | fetch_data));
     }
     else {
-        bus->write_data(0xFF00 | fetch_data, regs.read_register(REG_TYPE::RT_A));
+        bus->write_data(mem_dest, regs._a);
     }
     return 4;
 }
@@ -202,7 +206,8 @@ int CPU::process_INC() {
     }
     if (current_instruction.reg1 == REG_TYPE::RT_HL && current_instruction.mode == ADDR_MODE::AM_MR) {
         value = bus->read_data(regs.read_register(REG_TYPE::RT_HL)) + 1;
-        bus->write_data(regs.read_register(REG_TYPE::RT_HL), value & 0xFF);
+        value &= 0xFF;
+        bus->write_data(regs.read_register(REG_TYPE::RT_HL), value);
     }
     else {
         regs.set_register(current_instruction.reg1.value(), value);
@@ -212,7 +217,7 @@ int CPU::process_INC() {
         return cycles;
     }
 
-    regs.flags.set_z(false);
+    regs.flags.set_z(value == 0);
     regs.flags.set_n(false);
     regs.flags.set_h((value & 0x0F) == 0);
 
@@ -220,27 +225,27 @@ int CPU::process_INC() {
 }
 
 int CPU::process_DEC() {
-    uint16_t value = regs.read_register(current_instruction.reg1.value()) - 1;
+    uint16_t values = regs.read_register(current_instruction.reg1.value()) - 1;
     int cycles = 0;
 
     if (current_instruction.reg1 >= REG_TYPE::RT_AF) {
         cycles += 4;
     }
     if (current_instruction.reg1 == REG_TYPE::RT_HL && current_instruction.mode == ADDR_MODE::AM_MR) {
-        value = bus->read_data(regs.read_register(REG_TYPE::RT_HL)) - 1;
-        bus->write_data(regs.read_register(REG_TYPE::RT_HL), value);
+        values = bus->read_data(regs.read_register(REG_TYPE::RT_HL)) - 1;
+        bus->write_data(regs.read_register(REG_TYPE::RT_HL), values);
     }
     else {
-        regs.set_register(current_instruction.reg1.value(), value);
-        value = regs.read_register(current_instruction.reg1.value());
+        regs.set_register(current_instruction.reg1.value(), values);
+        values = regs.read_register(current_instruction.reg1.value());
     }
     if ((current_opcode & 0x0B) == 0x0B) {
         return cycles;
     }
 
-    regs.flags.set_z(false);
+    regs.flags.set_z(values == 0);
     regs.flags.set_n(true);
-    regs.flags.set_h((value & 0x0F) == 0x0F);
+    regs.flags.set_h((values & 0x0F) == 0x0F);
 
     return cycles;
 }

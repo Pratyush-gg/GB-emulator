@@ -14,9 +14,15 @@ uint8_t MMU::read_data(uint16_t address) {
         return cartridge->cart_read(address);
     }
     else if (address < 0xE000) {
+        address -= WRAM_OFFSET;
+        if (address > WRAM_SIZE) {
+            std::cerr << "WRAM read out of bounds: " << std::hex << address << std::endl;
+            return 0xFF; // or throw an exception
+        }
+        return wram[address];
 		// if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE)
 		// 	throw std::out_of_range("WRAM write out of bounds");
-		// return wram[address - WRAM_OFFSET];
+		//     return wram[address - WRAM_OFFSET];
     }
     else if (address < 0xFE00) {
         return 0;
@@ -34,11 +40,11 @@ uint8_t MMU::read_data(uint16_t address) {
     else if (address == 0xFFFF) {
         return ie_register;
     }
-    else {
-		if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE)
-			throw std::out_of_range("HRAM write out of bounds");
-        return hram[address - HRAM_OFFSET];
-    }
+    address -= HRAM_OFFSET;
+    return hram[address];
+    // if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE)
+    //     throw std::out_of_range("HRAM write out of bounds");
+    //     return hram[address - HRAM_OFFSET];
 }
 
 void MMU::write_data(uint16_t address, uint8_t value) {
@@ -54,12 +60,14 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         not_implemented("cart_write");
     }
     else if (address < 0xE000) {
+        address -= WRAM_OFFSET;
+        wram[address] = value;
         // if (address < WRAM_OFFSET || address >= WRAM_OFFSET + WRAM_SIZE)
 		// 	throw std::out_of_range("WRAM write out of bounds");
-		// wram[address - WRAM_OFFSET] = value;
+		//     wram[address - WRAM_OFFSET] = value;
     }
     else if (address < 0xFE00) {
-        return;
+
     }
     else if (address < 0xFEA0) {
 		// return ppu->write_oam(address, value);
@@ -73,17 +81,17 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     else if (address == 0xFFFF) {
         ie_register = value;
     }
-    else {
-		if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE)
-			throw std::out_of_range("HRAM write out of bounds");
-		hram[address - HRAM_OFFSET] = value;
-    }
+    address -= HRAM_OFFSET;
+    hram[address] = value;
+	// if (address < HRAM_OFFSET || address >= HRAM_OFFSET + HRAM_SIZE)
+	// 	throw std::out_of_range("HRAM write out of bounds");
+	//     hram[address - HRAM_OFFSET] = value;
 }
 
 uint16_t MMU::read_data16(uint16_t address) {
-    uint8_t low = read_data(address);
-    uint8_t high = read_data(address + 1);
-    return (high << 8) | low;
+    uint16_t low = read_data(address);
+    uint16_t high = read_data(address + 1);
+    return low | (high << 8);
 }
 
 void MMU::write_data16(uint16_t address, uint16_t value) {

@@ -19,6 +19,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/gb-emulator.dir/src/main.cpp.o.d"
   "CMakeFiles/gb-emulator.dir/src/mmu/ppu.cpp.o"
   "CMakeFiles/gb-emulator.dir/src/mmu/ppu.cpp.o.d"
+  "CMakeFiles/gb-emulator.dir/src/ui.cpp.o"
+  "CMakeFiles/gb-emulator.dir/src/ui.cpp.o.d"
   "gb-emulator"
   "gb-emulator.pdb"
 )
