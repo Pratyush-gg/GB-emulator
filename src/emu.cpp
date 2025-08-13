@@ -49,6 +49,10 @@ void Emulator::updateState() {
     cycles += increment_cycles;
 }
 
+void Emulator::handleCycles() {
+    cpu->timerTick();
+}
+
 Emulator::~Emulator() {
     // TODO
 }

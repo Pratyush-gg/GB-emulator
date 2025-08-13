@@ -61,6 +61,17 @@ enum interrupt_type {
     it_joypad = 16,
 };
 
+class timer {
+public:
+    uint16_t div;
+    uint8_t tima;
+    uint8_t tma;
+    uint8_t tac;
+
+    timer() : div(0xABCC), tima(0), tma(0), tac(0) {}
+};
+
+
 class CPU {
 public:
     CPU(const std::shared_ptr<MMU> _mmu) : bus(_mmu) {};
@@ -73,15 +84,16 @@ public:
     bool halted;
     bool stepping;
 
-    bool interrupt_master_enable;
-    bool enabling_ime;
-    uint8_t interrupt_enable_register;
-    uint8_t interrupt_flags;
+    bool interrupt_master_enable = false;
+    bool enabling_ime = false;
+    uint8_t interrupt_enable_register = 0;
+    uint8_t interrupt_flags = 0;
 
     int dbg_msg_size = 0;
     char dbg_msg[1024] = {0};
 
     RegisterFile regs;
+    timer tim;
 
     int cpu_step();
     int fetch_instruction();
@@ -96,6 +108,10 @@ public:
     uint16_t stack_pop16();
 
     void handle_interrupts();
+
+    void timerTick();
+    uint8_t timerRead(uint16_t address);
+    void timerWrite(uint16_t address, uint8_t value);
 
     void dbg_update();
     void dbg_print();

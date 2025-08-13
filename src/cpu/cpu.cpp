@@ -14,8 +14,6 @@ int CPU::fetch_instruction() {
     return 4;
 }
 
-//TODO
-
 int CPU::execute_instruction(const Instruction& instruction) {
     switch (instruction.type) {
         case INST_TYPE::IN_NOP:  return process_NOP();
@@ -85,6 +83,71 @@ uint16_t CPU::stack_pop16() {
 void CPU::handle_interrupts() {
     uint8_t interrupt_address = interruptHandler->interruptHandle();
     this->stack_push16(interrupt_address);
+}
+
+void CPU::request_interrupt(interrupt_type type) {
+    interrupt_flags |= type;
+}
+
+void CPU::timerTick() {
+    uint16_t prev_div = tim.div;
+    tim.div++;
+
+    bool timer_update = false;
+
+    switch(tim.tac & (0b11)) {
+        case 0b00:
+            timer_update = (prev_div & (1 << 9)) && (!(tim.div & (1 << 9)));
+            break;
+        case 0b01:
+            timer_update = (prev_div & (1 << 3)) && (!(tim.div & (1 << 3)));
+            break;
+        case 0b10:
+            timer_update = (prev_div & (1 << 5)) && (!(tim.div & (1 << 5)));
+            break;
+        case 0b11:
+            timer_update = (prev_div & (1 << 7)) && (!(tim.div & (1 << 7)));
+            break;
+    }
+
+    if (timer_update && tim.tac & (1 << 2)) {
+        tim.tima++;
+
+        if (tim.tima == 0xFF) {
+            tim.tima = tim.tma;
+            request_interrupt(interrupt_type::it_timer);
+        }
+    }
+}
+
+uint8_t CPU::timerRead(uint16_t address) {
+    switch (address) {
+        case 0xFF04:
+            return tim.div >> 8;
+        case 0xFF05:
+            return tim.tima;
+        case 0xFF06:
+            return tim.tma;
+        case 0xFF07:
+            return tim.tac;
+    }
+}
+
+void CPU::timerWrite(uint16_t address, uint8_t value) {
+    switch (address) {
+        case 0xFF04:
+            tim.div = 0;
+            break;
+        case 0xFF05:
+            tim.tima = value;
+            break;
+        case 0xFF06:
+            tim.tma = value;
+            break;
+        case 0xFF07:
+            tim.tac = value;
+            break;
+    }
 }
 
 void CPU::dbg_update() {
