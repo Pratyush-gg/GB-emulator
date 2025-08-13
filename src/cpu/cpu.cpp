@@ -85,10 +85,6 @@ void CPU::handle_interrupts() {
     this->stack_push16(interrupt_address);
 }
 
-void CPU::request_interrupt(interrupt_type type) {
-    interrupt_flags |= type;
-}
-
 void CPU::timerTick() {
     uint16_t prev_div = tim.div;
     tim.div++;
@@ -115,7 +111,7 @@ void CPU::timerTick() {
 
         if (tim.tima == 0xFF) {
             tim.tima = tim.tma;
-            request_interrupt(interrupt_type::it_timer);
+            this->interruptHandler->interruptRequest(InterruptType::IT_TIMER);
         }
     }
 }
