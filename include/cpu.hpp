@@ -2,6 +2,7 @@
 
 #include "instructions.hpp"
 #include "mmu.hpp"
+#include "interrupt.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -94,16 +95,14 @@ public:
     uint8_t stack_pop();
     uint16_t stack_pop16();
 
-    void request_interrupt(interrupt_type type);
     void handle_interrupts();
-    void int_handle(uint16_t address);
-    bool int_check(interrupt_type type, uint16_t address);
 
     void dbg_update();
     void dbg_print();
 
 private:
     std::shared_ptr<MMU> bus;
+    std::shared_ptr<InterruptHandler> interruptHandler;
 
     uint16_t reverse(uint16_t num);
 

@@ -18,17 +18,17 @@ int CPU::fetch_instruction() {
 
 int CPU::execute_instruction(const Instruction& instruction) {
     switch (instruction.type) {
-        case INST_TYPE::IN_NOP: return process_NOP();
+        case INST_TYPE::IN_NOP:  return process_NOP();
         case INST_TYPE::IN_STOP: return process_STOP();
-        case INST_TYPE::IN_DI:  return process_DI();
-        case INST_TYPE::IN_EI:  return process_EI();
-        case INST_TYPE::IN_JP:  return process_JP();
-        case INST_TYPE::IN_AND: return process_AND();
-        case INST_TYPE::IN_XOR: return process_XOR();
-        case INST_TYPE::IN_OR:  return process_OR();
-        case INST_TYPE::IN_CP:  return process_CP();
-        case INST_TYPE::IN_LD:  return process_LD();
-        case INST_TYPE::IN_LDH: return process_LDH();
+        case INST_TYPE::IN_DI:   return process_DI();
+        case INST_TYPE::IN_EI:   return process_EI();
+        case INST_TYPE::IN_JP:   return process_JP();
+        case INST_TYPE::IN_AND:  return process_AND();
+        case INST_TYPE::IN_XOR:  return process_XOR();
+        case INST_TYPE::IN_OR:   return process_OR();
+        case INST_TYPE::IN_CP:   return process_CP();
+        case INST_TYPE::IN_LD:   return process_LD();
+        case INST_TYPE::IN_LDH:  return process_LDH();
         case INST_TYPE::IN_PUSH: return process_PUSH();
         case INST_TYPE::IN_POP:  return process_POP();
         case INST_TYPE::IN_JR:   return process_JR();
@@ -42,15 +42,15 @@ int CPU::execute_instruction(const Instruction& instruction) {
         case INST_TYPE::IN_ADD:  return process_ADD();
         case INST_TYPE::IN_ADC:  return process_ADC();
         case INST_TYPE::IN_SBC:  return process_SBC();
-        case INST_TYPE::IN_RLCA:  return process_RLCA();
-        case INST_TYPE::IN_RRCA:  return process_RRCA();
-        case INST_TYPE::IN_RLA:   return process_RLA();
-        case INST_TYPE::IN_RRA:   return process_RRA();
+        case INST_TYPE::IN_RLCA: return process_RLCA();
+        case INST_TYPE::IN_RRCA: return process_RRCA();
+        case INST_TYPE::IN_RLA:  return process_RLA();
+        case INST_TYPE::IN_RRA:  return process_RRA();
         case INST_TYPE::IN_CPL:  return process_CPL();
         case INST_TYPE::IN_DAA:  return process_DAA();
-        case INST_TYPE::IN_CCF:   return process_CCF();
-        case INST_TYPE::IN_SCF:   return process_SCF();
-        case INST_TYPE::IN_HALT:  return process_HALT();
+        case INST_TYPE::IN_CCF:  return process_CCF();
+        case INST_TYPE::IN_SCF:  return process_SCF();
+        case INST_TYPE::IN_HALT: return process_HALT();
         case INST_TYPE::IN_CB:   return process_CB();
 
         default:
@@ -82,29 +82,9 @@ uint16_t CPU::stack_pop16() {
     return value;
 }
 
-void CPU::int_handle(uint16_t address) {
-    stack_push16(regs.PC);
-    regs.PC = address;
-}
-
-bool CPU::int_check(interrupt_type type, uint16_t address) {
-    if (interrupt_flags & type && interrupt_enable_register & type) {
-        int_handle(address);
-        interrupt_flags &= ~type;
-        halted = false;
-        interrupt_master_enable = false;
-
-        return true;
-    }
-    return false;
-}
-
 void CPU::handle_interrupts() {
-    if (int_check(interrupt_type::it_vblank, 0x0040)) {}
-    else if (int_check(interrupt_type::it_lcd_stat, 0x0048)) {}
-    else if (int_check(interrupt_type::it_timer, 0x0050)) {}
-    else if (int_check(interrupt_type::it_serial, 0x0058)) {}
-    else if (int_check(interrupt_type::it_joypad, 0x0060)) {}
+    uint8_t interrupt_address = interruptHandler->interruptHandle();
+    this->stack_push16(interrupt_address);
 }
 
 void CPU::dbg_update() {

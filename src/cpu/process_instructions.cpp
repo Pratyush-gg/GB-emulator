@@ -433,7 +433,7 @@ int CPU::process_HALT() {
 int CPU::process_CB() {
     int cycles = 0;
     uint8_t op = fetch_data;
-    register REG_TYPE reg;
+    REG_TYPE reg;
     switch (op & 0b111) {
         case 0b000: reg = REG_TYPE::RT_B; break;
         case 0b001: reg = REG_TYPE::RT_C; break;

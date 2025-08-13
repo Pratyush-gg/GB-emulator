@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 # Define the executable target named "gb-emulator"
-add_executable(gb-emulator ${SOURCES}  "src/mmu/ppu.cpp")
+add_executable(gb-emulator ${SOURCES}  "src/mmu/ppu.cpp" "src/interrupt.cpp")
 
 # Add the 'include' directory path
 target_include_directories(gb-emulator PUBLIC "include")
