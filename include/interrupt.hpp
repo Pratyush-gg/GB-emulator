@@ -11,8 +11,6 @@ enum InterruptType {
 
 class InterruptHandler {
 public:
-
-
 	uint8_t interruptEnable = 0x00;      // IE
 	uint8_t interruptFlags = 0b11100000; // IF
 	bool interruptMasterEnable = false;  // IME

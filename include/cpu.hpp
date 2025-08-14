@@ -120,8 +120,6 @@ private:
     std::shared_ptr<MMU> bus;
     std::shared_ptr<InterruptHandler> interruptHandler;
 
-    uint16_t reverse(uint16_t num);
-
     // ts returns the number of cycles taken now
     int process_NOP();
     int process_STOP();
