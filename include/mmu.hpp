@@ -1,6 +1,7 @@
 #pragma once
 #include "cart.hpp"
-#include "mmu/ppu.hpp"
+#include "ppu.hpp"
+#include "timer.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -21,23 +22,46 @@
 // FFFF	FFFF	Interrupt Enable register (IE)
 
 // TODO: Implement all this one by one
-class AudioPU;
-class Timer;
-class JoyPad;
+// class AudioPU;
+// class JoyPad;
 
 class MMU {
 private:
     std::shared_ptr<Cartridge> cartridge;
     std::shared_ptr<PicturePU> ppu;
     // std::shared_ptr<AudioPU> apu;
-    // std::shared_ptr<Timer> timer;
+    std::shared_ptr<Timer> timer;
     // std::shared_ptr<JoyPad> joypad;
+
+    static constexpr uint16_t CART_SEG1_OFFSET = 0;
+    static constexpr uint16_t CART_SEG1_SIZE = 0x8000;
+
+    static constexpr uint16_t VRAM_OFFSET = 0x8000;
+    static constexpr uint16_t VRAM_SIZE = 0x2000;
+
+    static constexpr uint16_t CART_SEG2_OFFSET = 0xA000;
+    static constexpr uint16_t CART_SEG2_SIZE = 0x2000;
 
 	static constexpr uint16_t WRAM_OFFSET = 0xC000;
     static constexpr uint16_t WRAM_SIZE = 0x2000;
 
+    static constexpr uint16_t ERAM_OFFSET = 0xE000;
+    static constexpr uint16_t ERAM_SIZE = 0x1E00;
+
+    static constexpr uint16_t OAM_OFFSET = 0xFE00;
+    static constexpr uint16_t OAM_SIZE = 0xA0;
+
 	static constexpr uint16_t HRAM_OFFSET = 0xFF80;
-	static constexpr uint16_t HRAM_SIZE = 0x0080;
+	static constexpr uint16_t HRAM_SIZE = 0x007f;
+
+    static constexpr uint16_t FORBIDDEN_OFFSET = 0xFEA0;
+    static constexpr uint16_t FORBIDDEN_SIZE = 0x0060;
+
+    static constexpr uint16_t TIMER_OFFSET = 0xFF04;
+    static constexpr uint16_t TIMER_END = 0xFF07;
+
+    static constexpr uint16_t PPO_IO_OFFSET = 0xFF40;
+    static constexpr uint16_t PPO_IO_END = 0xFF48;
 
 	std::array<uint8_t, WRAM_SIZE> wram;
 	std::array<uint8_t, HRAM_SIZE> hram;
@@ -46,18 +70,21 @@ private:
 
 public:
     MMU(std::shared_ptr<Cartridge> _cartridge,
-        std::shared_ptr<PicturePU> _ppu
+        std::shared_ptr<PicturePU> _ppu,
+        std::shared_ptr<Timer> _timer
         // std::shared_ptr<AudioPU> _apu,
-        // std::shared_ptr<Timer> _timer,
         // std::shared_ptr<JoyPad> _joypad
-        ) :
-        cartridge(std::move(_cartridge)),
-        ppu(std::move(_ppu))
-        // apu(_apu),
-        // timer(_timer),
-        // joypad(_joypad)
-    {}
-    uint8_t read_data(uint16_t address);
+        ) : cartridge(std::move(_cartridge)),
+            ppu(std::move(_ppu)),
+            timer(std::move(_timer)),
+            wram(), hram(), ie_register(0)
+    // apu(_apu),
+    // timer(_timer),
+    // joypad(_joypad)
+    {
+    }
+
+    uint8_t read_data(uint16_t address) const;
     void write_data(uint16_t, uint8_t value);
     uint16_t read_data16(uint16_t address);
     void write_data16(uint16_t address, uint16_t value);

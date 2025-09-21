@@ -1,11 +1,10 @@
 #include "../include/timer.hpp"
 
 void Timer::tick(uint8_t cycles) {
-	// TODO: complete this stuff
-
     while (cycles--) {
-		uint16_t prevDiv = this->dividerRegister;
+		const uint16_t prevDiv = this->dividerRegister;
 		this->dividerRegister++;
+
         bool timer_update = false;
  
 		switch(this->timerControl & (0b11)) {
@@ -21,12 +20,12 @@ void Timer::tick(uint8_t cycles) {
 			case 0b11:
 				timer_update = (prevDiv & (1 << 7)) && (!(dividerRegister & (1 << 7)));
 				break;
+			default: break;
 		}
 
-		if (timer_update && timerControl & (1 << 2)) {
+		if ((timerControl & 0x4) && timer_update) {
             timerCounter++;
-
-			if (timerCounter == 0xFF) {
+			if (timerCounter == 0x00) {
                 this->timerCounter = this->timerModulo;
 				this->interruptHandler->interruptRequest(InterruptType::IT_TIMER);
 			}
@@ -34,7 +33,7 @@ void Timer::tick(uint8_t cycles) {
     }
 }
 
-uint8_t Timer::readAddr(uint16_t address) {
+uint8_t Timer::readAddr(const uint16_t address) const {
     switch (address) {
         case 0xFF04:
             return this->dividerRegister >> 8;
@@ -44,10 +43,11 @@ uint8_t Timer::readAddr(uint16_t address) {
             return this->timerModulo;
         case 0xFF07:
             return this->timerControl;
+		default: return 0;
     }
 }
 
-uint8_t Timer::writeAddr(uint16_t address, uint8_t value) {
+void Timer::writeAddr(const uint16_t address, const uint8_t value) {
     switch (address) {
         case 0xFF04:
             this->dividerRegister = 0;
@@ -61,5 +61,6 @@ uint8_t Timer::writeAddr(uint16_t address, uint8_t value) {
         case 0xFF07:
             this->timerControl = value;
             break;
+    	default: break;
     }
 }

@@ -1,4 +1,4 @@
-#include "../include/mmu/ppu.hpp"
+#include "../include/ppu.hpp"
 #include "../include/cpu.hpp"
 
 
@@ -20,7 +20,7 @@ void PicturePU::write_vram(uint16_t address, uint8_t value) {
 	vram[address - VRAM_OFFSET] = value;
 }
 
-uint8_t PicturePU::read_oam(uint16_t address) {
+uint8_t PicturePU::read_oam(const uint16_t address) const {
 	if (address < OAM_OFFSET || address >= OAM_OFFSET + OAM_SIZE)
 		throw std::out_of_range("OAM read out of bounds");
 	return oam[address - OAM_OFFSET];

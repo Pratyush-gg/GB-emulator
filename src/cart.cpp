@@ -58,7 +58,7 @@ Cartridge::Cartridge(const std::string &filename) {
     print_cart_info();
 }
 
-template<typename T> // template to accomodate both uint8_t and uint16_t
+template<typename T> // template to accommodate both uint8_t and uint16_t
 void print_info(const std::string&& label, T key,
         const std::unordered_map<T, std::string> &lookup_table, bool show_key = true) {
 
@@ -78,7 +78,7 @@ void print_info(const std::string&& label, T key,
     std::cout << ")" << std::endl;
 }
 
-void Cartridge::print_cart_info() {
+void Cartridge::print_cart_info() const {
     // TODO : find another way to figure out coz both those pointers will not be null now
     // if (!ctx.cart_header || !ctx.rom_data) {
     //     cout << "Error: No cartridge header loaded." << endl;
@@ -100,7 +100,7 @@ void Cartridge::print_cart_info() {
     std::cout << "ROM version: 0x" << std::hex << +this->cart_header.mask_rom_version << std::dec << std::endl << std::endl;
 }
 
-uint8_t Cartridge::cart_read(uint16_t address) {
+uint8_t Cartridge::cart_read(const uint16_t address) const {
     return this->rom_data[address];
 }
 

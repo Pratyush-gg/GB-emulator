@@ -9,13 +9,13 @@ class PicturePU {
 	static constexpr uint16_t OAM_OFFSET = 0xFE00;
 	static constexpr uint16_t OAM_SIZE = 0xA0;
 
-	std::array<uint8_t, VRAM_SIZE> vram;
-	std::array<uint8_t, OAM_SIZE> oam;
+	std::array<uint8_t, VRAM_SIZE> vram = {};
+	std::array<uint8_t, OAM_SIZE> oam = {};
 public:
 	uint8_t read_vram(uint16_t address);
 	void write_vram(uint16_t address, uint8_t value);
 
-	uint8_t read_oam(uint16_t address);
+	uint8_t read_oam(uint16_t address) const;
 	void write_oam(uint16_t address, uint8_t value);
 
 	uint8_t io_read(uint16_t address);

@@ -41,9 +41,9 @@ public:
     std::vector<uint8_t> rom_data;
     Header cart_header;
 
-    void print_cart_info();
+    void print_cart_info() const;
 
-    uint8_t cart_read(uint16_t address);
+    uint8_t cart_read(uint16_t address) const;
     // void cart_write(uint16_t address, uint8_t value);
 };
 
