@@ -10,7 +10,6 @@ class Emulator {
 private:
     bool running;
     bool paused;
-    uint64_t cycles;
 
     std::shared_ptr<CPU> cpu;
     std::shared_ptr<MMU> bus;
@@ -23,13 +22,12 @@ private:
     void pollInput();
     void updateState();
     void renderScreen();
-    void handleCycles();
+    void handleCycles() const;
 
     // add extra SDL shit
 
 public:
-    Emulator(const std::string& rom_filename);
-    ~Emulator();
+    explicit Emulator(const std::string& rom_filename);
 
     void run();
 };

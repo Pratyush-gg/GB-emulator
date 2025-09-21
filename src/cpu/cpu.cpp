@@ -53,41 +53,35 @@ int CPU::execute_instruction(const Instruction& instruction) {
 
         default:
             std::cerr << "Error: Unhandled instruction type: " << static_cast<int>(instruction.type) << std::endl;
-            return 1;
+            return -1;
     }
-    return 0;
 }
 
-void CPU::stack_push(uint8_t value) {
+void CPU::stack_push(const uint8_t value) {
     regs.SP--;
     bus->write_data(regs.SP, value);
 }
 
-void CPU::stack_push16(uint16_t value) {
+void CPU::stack_push16(const uint16_t value) {
     regs.SP -= 2;
     bus->write_data16(regs.SP, value);
 }
 
 uint8_t CPU::stack_pop() {
-    uint8_t value = bus->read_data(regs.SP);
+    const uint8_t value = bus->read_data(regs.SP);
     regs.SP++;
     return value;
 }
 
 uint16_t CPU::stack_pop16() {
-    uint16_t value = bus->read_data16(regs.SP);
+    const uint16_t value = bus->read_data16(regs.SP);
     regs.SP += 2;
     return value;
 }
 
-void CPU::handle_interrupts() {
-    uint8_t interrupt_address = interruptHandler->interruptHandle();
-    this->stack_push16(interrupt_address);
-}
-
 void CPU::dbg_update() {
     if (bus->read_data(0xFF02) == 0x81) {
-        char c = bus->read_data(0xFF01);
+        const char c = bus->read_data(0xFF01);
 
         dbg_msg[dbg_msg_size++] = c;
 
@@ -95,7 +89,7 @@ void CPU::dbg_update() {
     }
 }
 
-void CPU::dbg_print() {
+void CPU::dbg_print() const {
     if (dbg_msg[0]) {
         std::cout << "Debug Message: ";
         for (int i = 0; i < dbg_msg_size; ++i) {
@@ -105,48 +99,49 @@ void CPU::dbg_print() {
     }
 }
 
+void CPU::print_cpu_state(const uint16_t prev_PC) const {
+    std::cout << "PC: " << std::hex << prev_PC << std::dec << " Opcode: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(current_opcode) << std::dec;
+    std::cout << " A: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._a);
+    std::cout << " F: " << (regs.flags.c() ? 'C' : '_') << (regs.flags.h() ? 'H' : '_') << (regs.flags.n() ? 'N' : '_') << (regs.flags.z() ? 'Z' : '_');
+    std::cout << " BC: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._b) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._c) << std::dec;
+    std::cout << " DE: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._d) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._e) << std::dec;
+    std::cout << " HL: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._h) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._l) << std::dec << std::endl;
+    std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC)) << " " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC + 1)) << std::endl;
+}
+
 int CPU::cpu_step() {
+    int num_cycles = 0;
+
     if (!halted) {
-        uint16_t prev_PC = regs.PC;
+        const uint16_t prev_PC = regs.PC;
 
         dbg_update();
         dbg_print();
 
-        int num_cycles = 0;
-
         num_cycles += fetch_instruction();
         num_cycles += decode_instruction();
 
-        std::cout << "PC: " << std::hex << prev_PC << std::dec << " Opcode: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(current_opcode) << std::dec;
-        std::cout << " A: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._a);
-        std::cout << " F: " << (regs.flags.c() ? 'C' : '_') << (regs.flags.h() ? 'H' : '_') << (regs.flags.n() ? 'N' : '_') << (regs.flags.z() ? 'Z' : '_');
-        std::cout << " BC: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._b) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._c) << std::dec;
-        std::cout << " DE: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._d) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._e) << std::dec;
-        std::cout << " HL: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._h) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._l) << std::dec << std::endl;
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC)) << " " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC + 1)) << std::endl;
+        print_cpu_state(prev_PC);
 
-        int res = execute_instruction(current_instruction);
-
-        if (res == 1) return 0;
+        if (const int res = execute_instruction(current_instruction); res == -1)
+            return 0;
         else num_cycles += res;
-
-        return num_cycles;
     }
     else {
-        int num_cycles = 4;
-
-        if (interrupt_flags) {
+        if (interruptHandler->hasPendingInterrupt())
             halted = false;
-        }
+        num_cycles += 4;
     }
 
-    if (interrupt_master_enable) {
-        handle_interrupts();
-        enabling_ime = false;
-    }
-    if (enabling_ime) {
-        interrupt_master_enable = true;
+    if (const uint16_t interruptVector = interruptHandler->interruptHandle()) {
+        serviceInterrupt(interruptVector);
+        return 20;
     }
 
-    return 0;
+    return num_cycles;
+}
+
+void CPU::serviceInterrupt(uint16_t interruptVector) {
+    stack_push16(regs.PC);
+    regs.PC = interruptVector;
 }

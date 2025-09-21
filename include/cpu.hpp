@@ -10,10 +10,10 @@
 
 struct FlagRegister {
 private:
-    static const size_t Z_pos = 7;
-    static const size_t N_pos = 6;
-    static const size_t H_pos = 5;
-    static const size_t C_pos = 4;
+    static constexpr size_t Z_pos = 7;
+    static constexpr size_t N_pos = 6;
+    static constexpr size_t H_pos = 5;
+    static constexpr size_t C_pos = 4;
 
     std::bitset<8> flags;
 public:
@@ -47,7 +47,7 @@ public:
     FlagRegister flags;
     uint16_t SP, PC;
 
-    RegisterFile() : SP(0xFFFE), PC(0x0100), _a(1), _b(0), _c(0x13), _d(0), _e(0xD8), _h(0x01), _l(0x4D) { flags.set_byte(0xB0); }
+    RegisterFile() : _a(1), _b(0), _c(0x13), _d(0), _e(0xD8), _h(0x01), _l(0x4D), SP(0xFFFE), PC(0x0100) { flags.set_byte(0xB0); }
 
     uint16_t read_register(REG_TYPE reg);
     void set_register(REG_TYPE reg, uint16_t value);
@@ -61,20 +61,14 @@ enum interrupt_type {
     it_joypad = 16,
 };
 
-class timer {
-public:
-    uint16_t div;
-    uint8_t tima;
-    uint8_t tma;
-    uint8_t tac;
-
-    timer() : div(0xABCC), tima(0), tma(0), tac(0) {}
-};
-
-
 class CPU {
 public:
-    CPU(const std::shared_ptr<MMU> _mmu) : bus(_mmu) {};
+    explicit CPU(const std::shared_ptr<MMU> &mmu, const std::shared_ptr<InterruptHandler> &interruptHandler) :
+        fetch_data(0), mem_dest(0), dest_is_mem(false), current_opcode(0),
+        halted(false), stepping(false),
+        bus(mmu),
+        interruptHandler(interruptHandler) { };
+
     uint16_t fetch_data;
     uint16_t mem_dest;
 
@@ -84,16 +78,10 @@ public:
     bool halted;
     bool stepping;
 
-    bool interrupt_master_enable = false;
-    bool enabling_ime = false;
-    uint8_t interrupt_enable_register = 0;
-    uint8_t interrupt_flags = 0;
-
     int dbg_msg_size = 0;
     char dbg_msg[1024] = {0};
 
     RegisterFile regs;
-    timer tim;
 
     int cpu_step();
     int fetch_instruction();
@@ -107,14 +95,10 @@ public:
     uint8_t stack_pop();
     uint16_t stack_pop16();
 
-    void handle_interrupts();
-
-    void timerTick();
-    uint8_t timerRead(uint16_t address);
-    void timerWrite(uint16_t address, uint8_t value);
-
     void dbg_update();
-    void dbg_print();
+    void dbg_print() const;
+
+    void print_cpu_state(uint16_t prev_PC) const;
 
 private:
     std::shared_ptr<MMU> bus;
@@ -155,5 +139,8 @@ private:
     int process_SCF();
     int process_HALT();
     int process_CB();
+
+    void serviceInterrupt(uint16_t interruptVector);
+
 };
 

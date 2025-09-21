@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 // Memory Map
 // 0000	3FFF	16 KiB ROM bank 00	From cartridge, usually a fixed bank
@@ -50,8 +51,8 @@ public:
         // std::shared_ptr<Timer> _timer,
         // std::shared_ptr<JoyPad> _joypad
         ) :
-        cartridge(_cartridge),
-        ppu(_ppu)
+        cartridge(std::move(_cartridge)),
+        ppu(std::move(_ppu))
         // apu(_apu),
         // timer(_timer),
         // joypad(_joypad)

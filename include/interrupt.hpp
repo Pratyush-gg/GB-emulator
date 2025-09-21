@@ -17,4 +17,8 @@ public:
 
 	void interruptRequest(InterruptType type);
 	uint8_t interruptHandle();
+
+	inline bool hasPendingInterrupt() const {
+		return interruptFlags & interruptEnable;
+	}
 };
