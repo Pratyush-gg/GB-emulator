@@ -11,14 +11,14 @@ enum InterruptType {
 
 class InterruptHandler {
 public:
-	uint8_t interruptEnable = 0x00;      // IE
-	uint8_t interruptFlags = 0b11100000; // IF
-	bool interruptMasterEnable = false;  // IME
+	uint8_t IE = 0x00;
+	uint8_t IF = 0b11100000;
+	bool IME = false;
 
 	void interruptRequest(InterruptType type);
 	uint8_t interruptHandle();
 
 	inline bool hasPendingInterrupt() const {
-		return interruptFlags & interruptEnable;
+		return IF & IE;
 	}
 };

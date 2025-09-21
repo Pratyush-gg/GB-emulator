@@ -36,12 +36,14 @@ uint8_t MMU::read_data(const uint16_t address) const {
         return 0xFF;
     }
     if (address < 0xFF80) {
-        if (address >= TIMER_OFFSET && address <= TIMER_END) {
+        if (address == 0xFF01) return serial_data[0];
+        if (address == 0xFF02) return serial_data[1];
+
+        if (address >= TIMER_OFFSET && address <= TIMER_END)
             return timer->readAddr(address);
-        }
-        if (address >= PPO_IO_OFFSET && address <= PPO_IO_END) {
+
+        if (address >= PPO_IO_OFFSET && address <= PPO_IO_END)
             return ppu->io_read(address);
-        }
         // TODO : add joypad and APU.
     }
     if (address < HRAM_OFFSET + HRAM_SIZE) {
@@ -101,6 +103,14 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     if (address >= 0xFF00 && address < 0xFF80) {
+        if (address == 0xFF01) {
+            serial_data[0] = value;
+            return;
+        }
+        if (address == 0xFF02) {
+            serial_data[1] = value;
+            return;
+        }
         if (address >= TIMER_OFFSET && address <= TIMER_END) {
             timer->writeAddr(address, value);
             return;
@@ -115,7 +125,6 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         return;
     }
 
-    // FF80–FFFE: HRAM
     if (address >= HRAM_OFFSET && address < HRAM_OFFSET + HRAM_SIZE) {
         const uint16_t offset = address - HRAM_OFFSET;
         if (offset >= HRAM_SIZE) {
@@ -132,11 +141,11 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     // Invalid address fallback
-    std::cerr << "[ERROR] Invalid memory write at: " << std::hex << address << " value: " << std::hex << int(value) << std::endl;
+    std::cerr << "Invalid memory write at: " << std::hex << address << " value: " << std::hex << static_cast<int>(value) << std::endl;
 }
 
 
-uint16_t MMU::read_data16(uint16_t address) {
+uint16_t MMU::read_data16(uint16_t address) const {
     const uint16_t low = read_data(address);
     const uint16_t high = read_data(address + 1);
     return low | (high << 8);

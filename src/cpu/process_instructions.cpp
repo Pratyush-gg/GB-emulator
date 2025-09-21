@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-bool CPU::check_condition(const Instruction& instruction) {
+bool CPU::check_condition(const Instruction& instruction) const {
     if (!instruction.condition.has_value()) {
         return true;
     }
@@ -32,15 +32,16 @@ int CPU::process_NOP() {
 int CPU::process_STOP() {
     std::cout << "Stopping..." << std::endl;
     // implementation of STOP instruction
+    return 0;
 }
 
-int CPU::process_DI() {
-    this->interrupt_master_enable = false;
+int CPU::process_DI() const {
+    this->interruptHandler->IME = false;
     return 0;
 }
 
 int CPU::process_EI() {
-    this->enabling_ime = true;
+    this->EI_Triggered = true;
     return 0;
 }
 
@@ -53,7 +54,7 @@ int CPU::process_JP() {
 }
 
 int CPU::process_JR() {
-    int8_t rel = (int8_t)(fetch_data & 0xFF);
+    int8_t rel = static_cast<int8_t>(fetch_data & 0xFF);
     uint16_t address = regs.PC + rel;
     if (check_condition(current_instruction)) {
         regs.PC = address;
@@ -96,9 +97,8 @@ int CPU::process_RET() {
 }
 
 int CPU::process_RETI() {
-    this->interrupt_master_enable = true;
-    int cycles = process_RET();
-    return cycles;
+    this->interruptHandler->IME = true;
+    return process_RET();
 }
 
 int CPU::process_AND() {
@@ -112,7 +112,7 @@ int CPU::process_AND() {
 
 
 int CPU::process_XOR() {
-    uint8_t value = fetch_data & 0xFF;
+    const uint8_t value = fetch_data & 0xFF;
     regs._a ^= value;
     regs.flags.set_z(regs._a == 0);
     regs.flags.set_h(false);
@@ -131,7 +131,7 @@ int CPU::process_OR() {
 }
 
 int CPU::process_CP() {
-    int n = (int)regs._a - (int)fetch_data;
+    const int n = static_cast<int>(regs._a) - static_cast<int>(fetch_data);
     std::cout << "n: " << n << std::endl;
     regs.flags.set_z(n == 0);
     regs.flags.set_h(((int)regs._a & 0x0F) < ((int)fetch_data & 0x0F));
@@ -143,15 +143,32 @@ int CPU::process_CP() {
 int CPU::process_LD() {
     int cycles = 0;
     if (dest_is_mem) {
-        if (current_instruction.reg2 >= REG_TYPE::RT_AF)
-        {
-            cycles += 4;
-            bus->write_data16(mem_dest, fetch_data);
-        }
-        else {
-            bus->write_data(mem_dest, fetch_data);
+        switch (current_instruction.reg2.value()) {
+            case REG_TYPE::RT_A:
+            case REG_TYPE::RT_F:
+            case REG_TYPE::RT_B:
+            case REG_TYPE::RT_C:
+            case REG_TYPE::RT_D:
+            case REG_TYPE::RT_E:
+            case REG_TYPE::RT_H:
+            case REG_TYPE::RT_L:
+                bus->write_data(mem_dest, fetch_data);
+                break;
+            case REG_TYPE::RT_AF:
+            case REG_TYPE::RT_BC:
+            case REG_TYPE::RT_DE:
+            case REG_TYPE::RT_HL:
+            case REG_TYPE::RT_SP:
+            case REG_TYPE::RT_PC:
+                cycles += 4;
+                bus->write_data16(mem_dest, fetch_data);
+                break;
+            default: break;
         }
         cycles += 4;
+
+        // TODO: IMPLEMENT MORE OF THIS
+
         return cycles;
     }
 
@@ -166,6 +183,7 @@ int CPU::process_LD() {
     }
 
     regs.set_register(current_instruction.reg1.value(), fetch_data);
+    return -1;
 }
 
 int CPU::process_LDH() {
@@ -433,7 +451,7 @@ int CPU::process_HALT() {
 
 int CPU::process_CB() {
     int cycles = 0;
-    uint8_t op = fetch_data;
+    const uint8_t op = fetch_data;
     REG_TYPE reg;
     switch (op & 0b111) {
         case 0b000: reg = REG_TYPE::RT_B; break;
@@ -445,10 +463,10 @@ int CPU::process_CB() {
         case 0b110: reg = REG_TYPE::RT_HL; break;
         case 0b111: reg = REG_TYPE::RT_A; break;
         default:
-            std::cerr << "Error: Unknown Register for CB instruction: " << static_cast<int>(op) << std::endl;
+            throw std::runtime_error("Unknown register for CB instruction");
     }
-    uint8_t bit = (op >> 3) & 0b111;
-    uint8_t bit_op = (op >> 6) & 0b11;
+    const uint8_t bit = (op >> 3) & 0b111;
+    const uint8_t bit_op = (op >> 6) & 0b11;
     uint8_t reg_value;
     if (reg == REG_TYPE::RT_HL) {
         reg_value = bus->read_data(regs.read_register(REG_TYPE::RT_HL));
@@ -486,6 +504,7 @@ int CPU::process_CB() {
             }
             return cycles;
         }
+        default: ;
     }
 
     switch (static_cast<int>(bit)) {
@@ -613,7 +632,6 @@ int CPU::process_CB() {
         }
         default:
             std::cerr << "Error: Unknown CB instruction: " << static_cast<int>(op) << std::endl;
-            return 0;
+            throw std::runtime_error("Unknown CB instruction");
     }
-    std::cerr << "Error: Unknown CB instruction: " << static_cast<int>(op) << std::endl;
 }

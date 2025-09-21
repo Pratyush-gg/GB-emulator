@@ -15,9 +15,10 @@ private:
     std::shared_ptr<MMU> bus;
     std::shared_ptr<Cartridge> cart;
     std::shared_ptr<PicturePU> ppu;
-    std::shared_ptr<AudioPU> apu;
+    // std::shared_ptr<AudioPU> apu;
     std::shared_ptr<Timer> timer;
-    std::shared_ptr<JoyPad> joypad;
+    std::shared_ptr<InterruptHandler> interrupts;;
+    // std::shared_ptr<JoyPad> joypad;
 
     void pollInput();
     void updateState();

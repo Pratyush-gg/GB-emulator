@@ -78,6 +78,8 @@ public:
     bool halted;
     bool stepping;
 
+    bool EI_Triggered;
+
     int dbg_msg_size = 0;
     char dbg_msg[1024] = {0};
 
@@ -88,7 +90,7 @@ public:
     int decode_instruction();
     int execute_instruction(const Instruction& instruction);
 
-    bool check_condition(const Instruction& instruction);
+    bool check_condition(const Instruction& instruction) const;
 
     void stack_push(uint8_t value);
     void stack_push16(uint16_t value);
@@ -105,9 +107,9 @@ private:
     std::shared_ptr<InterruptHandler> interruptHandler;
 
     // ts returns the number of cycles taken now
-    int process_NOP();
+    static int process_NOP();
     int process_STOP();
-    int process_DI();
+    int process_DI() const;
     int process_EI();
     int process_JP();
     int process_AND();

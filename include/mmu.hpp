@@ -66,6 +66,8 @@ private:
 	std::array<uint8_t, WRAM_SIZE> wram;
 	std::array<uint8_t, HRAM_SIZE> hram;
 
+    std::array<uint8_t, 2> serial_data;
+
     uint8_t ie_register;
 
 public:
@@ -77,7 +79,7 @@ public:
         ) : cartridge(std::move(_cartridge)),
             ppu(std::move(_ppu)),
             timer(std::move(_timer)),
-            wram(), hram(), ie_register(0)
+            wram(), hram(), serial_data(), ie_register(0)
     // apu(_apu),
     // timer(_timer),
     // joypad(_joypad)
@@ -86,6 +88,6 @@ public:
 
     uint8_t read_data(uint16_t address) const;
     void write_data(uint16_t, uint8_t value);
-    uint16_t read_data16(uint16_t address);
+    uint16_t read_data16(uint16_t address) const;
     void write_data16(uint16_t address, uint16_t value);
 };
