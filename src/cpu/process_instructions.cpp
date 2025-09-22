@@ -32,6 +32,7 @@ int CPU::process_NOP() {
 int CPU::process_STOP() {
     std::cout << "Stopping..." << std::endl;
     // implementation of STOP instruction
+    halted = true;
     return 0;
 }
 
@@ -54,7 +55,7 @@ int CPU::process_JP() {
 }
 
 int CPU::process_JR() {
-    int8_t rel = static_cast<int8_t>(fetch_data & 0xFF);
+    auto rel = static_cast<int8_t>(fetch_data & 0xFF);
     uint16_t address = regs.PC + rel;
     if (check_condition(current_instruction)) {
         regs.PC = address;
@@ -134,7 +135,7 @@ int CPU::process_CP() {
     const int n = static_cast<int>(regs._a) - static_cast<int>(fetch_data);
     std::cout << "n: " << n << std::endl;
     regs.flags.set_z(n == 0);
-    regs.flags.set_h(((int)regs._a & 0x0F) < ((int)fetch_data & 0x0F));
+    regs.flags.set_h((static_cast<int>(regs._a) & 0x0F) < (static_cast<int>(fetch_data) & 0x0F));
     regs.flags.set_c(n < 0);
     regs.flags.set_n(true);
     return 0;
@@ -178,12 +179,14 @@ int CPU::process_LD() {
         regs.flags.set_z(false);
         regs.flags.set_n(false);
 
-        regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg2.value()) + (int8_t)fetch_data);
+        regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg2.value())
+                                                                    + static_cast<int8_t>(fetch_data));
         return cycles;
     }
 
     regs.set_register(current_instruction.reg1.value(), fetch_data);
-    return -1;
+    // return -1;
+    return 0;
 }
 
 int CPU::process_LDH() {
@@ -288,7 +291,7 @@ int CPU::process_ADD() {
     if (current_instruction.reg1 >= REG_TYPE::RT_AF) {
         flag1 = true;
         h_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xFFF) + (fetch_data & 0xFFF)) >= 0x1000;
-        c_flag = (uint32_t(regs.read_register(current_instruction.reg1.value())) + uint32_t(fetch_data)) >= 0x10000;
+        c_flag = (static_cast<uint32_t>(regs.read_register(current_instruction.reg1.value())) + static_cast<uint32_t>(fetch_data)) >= 0x10000;
     }
     if (current_instruction.reg1 == REG_TYPE::RT_SP) {
         z_flag = false;
@@ -311,8 +314,8 @@ int CPU::process_SUB() {
     uint16_t values = regs.read_register(current_instruction.reg1.value()) - fetch_data;
 
     regs.flags.set_z(values == 0);
-    regs.flags.set_h(((int)regs.read_register(current_instruction.reg1.value()) & 0xF) < ((int)fetch_data & 0xF));
-    regs.flags.set_c((int)regs.read_register(current_instruction.reg1.value()) < (int)fetch_data);
+    regs.flags.set_h((static_cast<int>(regs.read_register(current_instruction.reg1.value())) & 0xF) < (static_cast<int>(fetch_data) & 0xF));
+    regs.flags.set_c(static_cast<int>(regs.read_register(current_instruction.reg1.value())) < static_cast<int>(fetch_data));
     regs.flags.set_n(true);
 
     regs.set_register(current_instruction.reg1.value(), values);
@@ -364,7 +367,7 @@ int CPU::process_RLCA() {
 }
 
 int CPU::process_RRCA() {
-    uint8_t values = regs.read_register(REG_TYPE::RT_A) & 1;
+    const uint8_t values = regs.read_register(REG_TYPE::RT_A) & 1;
     regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) >> 1));
     regs.set_register(REG_TYPE::RT_A, (regs.read_register(REG_TYPE::RT_A) | (values << 7)));
 
@@ -592,7 +595,7 @@ int CPU::process_CB() {
             return cycles;
         }
         case 5: {
-            uint8_t a = int8_t(reg_value) >> 1;
+            const uint8_t a = static_cast<int8_t>(reg_value) >> 1;
             if (reg == REG_TYPE::RT_HL) {
                 bus->write_data(regs.read_register(REG_TYPE::RT_HL), a);
             } else {

@@ -82,9 +82,7 @@ uint16_t CPU::stack_pop16() {
 void CPU::dbg_update() {
     if (bus->read_data(0xFF02) == 0x81) {
         const char c = bus->read_data(0xFF01);
-
         dbg_msg[dbg_msg_size++] = c;
-
         bus->write_data(0xFF02, 0);
     }
 }
