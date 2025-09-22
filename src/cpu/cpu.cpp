@@ -82,12 +82,14 @@ void CPU::dbg_update() {
     if (bus->read_data(0xFF02) == 0x81) {
         const unsigned char c = bus->read_data(0xFF01);
         dbg_msg[dbg_msg_size++] = static_cast<char>(c);
+        dbg_written = true;
         bus->write_data(0xFF02, 0);
     }
+    else dbg_written = false;
 }
 
 void CPU::dbg_print() const {
-    if (dbg_msg[0]) {
+    if (dbg_written) {
         std::cout << "Debug Message: ";
         for (int i = 0; i < dbg_msg_size; ++i) {
             std::cout << dbg_msg[i];

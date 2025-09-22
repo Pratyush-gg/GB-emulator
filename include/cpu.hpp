@@ -81,6 +81,7 @@ public:
     bool EI_Triggered;
 
     int dbg_msg_size = 0;
+    bool dbg_written;
     char dbg_msg[1024] = {0};
 
     RegisterFile regs;

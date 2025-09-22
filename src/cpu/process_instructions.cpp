@@ -133,7 +133,7 @@ int CPU::process_OR() {
 
 int CPU::process_CP() {
     const int n = static_cast<int>(regs._a) - static_cast<int>(fetch_data);
-    std::cout << "n: " << n << std::endl;
+    // std::cout << "n: " << n << std::endl;
     regs.flags.set_z(n == 0);
     regs.flags.set_h((static_cast<int>(regs._a) & 0x0F) < (static_cast<int>(fetch_data) & 0x0F));
     regs.flags.set_c(n < 0);
@@ -477,7 +477,7 @@ int CPU::process_CB() {
         reg_value = regs.read_register(reg);
     }
 
-    std::cout << "Processing CB instruction: " << static_cast<int>(op) << " Bit: " << static_cast<int>(bit) << " Bit Op: " << static_cast<int>(bit_op) << " Reg Value: " << static_cast<int>(reg_value) << std::endl;
+    // std::cout << "Processing CB instruction: " << static_cast<int>(op) << " Bit: " << static_cast<int>(bit) << " Bit Op: " << static_cast<int>(bit_op) << " Reg Value: " << static_cast<int>(reg_value) << std::endl;
     cycles += 4;
 
     if (reg == REG_TYPE::RT_HL) {
