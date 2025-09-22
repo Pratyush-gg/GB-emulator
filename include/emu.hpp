@@ -29,6 +29,5 @@ private:
 
 public:
     explicit Emulator(const std::string& rom_filename);
-
     void run();
 };

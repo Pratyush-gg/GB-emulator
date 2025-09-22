@@ -34,8 +34,8 @@ int CPU::decode_instruction() {
         case ADDR_MODE::AM_R_D16:
 
         case ADDR_MODE::AM_D16: {
-            uint16_t low = bus->read_data(regs.PC);
-            uint16_t high = bus->read_data(regs.PC + 1);
+            const uint16_t low = bus->read_data(regs.PC);
+            const uint16_t high = bus->read_data(regs.PC + 1);
             fetch_data = low | (high << 8);
             regs.PC += 2;
             return 8;

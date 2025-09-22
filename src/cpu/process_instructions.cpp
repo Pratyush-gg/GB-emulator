@@ -35,7 +35,8 @@ int CPU::process_STOP() {
     return 0;
 }
 
-int CPU::process_DI() const {
+int CPU::process_DI() {
+    this->EI_Triggered = false;
     this->interruptHandler->IME = false;
     return 0;
 }
@@ -426,7 +427,7 @@ int CPU::process_CCF() {
 }
 
 int CPU::process_HALT() {
-    std::cout << "HALT instruction encountered. CPU halted." << std::endl;
+    // std::cout << "HALT instruction encountered. CPU halted." << std::endl;
     this->halted = true;
     return 0;
 }

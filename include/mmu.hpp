@@ -31,6 +31,7 @@ private:
     std::shared_ptr<PicturePU> ppu;
     // std::shared_ptr<AudioPU> apu;
     std::shared_ptr<Timer> timer;
+    std::shared_ptr<InterruptHandler> interrupt;
     // std::shared_ptr<JoyPad> joypad;
 
     static constexpr uint16_t CART_SEG1_OFFSET = 0;
@@ -68,18 +69,18 @@ private:
 
     std::array<uint8_t, 2> serial_data;
 
-    uint8_t ie_register;
-
 public:
     MMU(std::shared_ptr<Cartridge> _cartridge,
         std::shared_ptr<PicturePU> _ppu,
-        std::shared_ptr<Timer> _timer
+        std::shared_ptr<Timer> _timer,
+        std::shared_ptr<InterruptHandler> _interrupt
         // std::shared_ptr<AudioPU> _apu,
         // std::shared_ptr<JoyPad> _joypad
         ) : cartridge(std::move(_cartridge)),
             ppu(std::move(_ppu)),
             timer(std::move(_timer)),
-            wram(), hram(), serial_data(), ie_register(0)
+            interrupt(std::move(_interrupt)),
+            wram(), hram(), serial_data()
     // apu(_apu),
     // timer(_timer),
     // joypad(_joypad)

@@ -33,6 +33,7 @@ uint8_t PicturePU::io_read(const uint16_t address) const {
 		case LCDC_ADDR	: return LCDC;
 		case STAT_ADDR	: return STAT;
 		case SCX_ADDR 	: return SCX;
+		case SCY_ADDR 	: return SCY;
 		case LY_ADDR  	: return LY;
 		case LYC_ADDR 	: return LYC;
 		case DMA_ADDR 	: return DMA;
@@ -47,18 +48,19 @@ uint8_t PicturePU::io_read(const uint16_t address) const {
 
 void PicturePU::io_write(const uint16_t address, const uint8_t value) {
 	 switch (address) {
-		case LCDC_ADDR	: LCDC = value;
-		case STAT_ADDR	: STAT = value;
-		case SCX_ADDR 	: SCX = value;
-		case LY_ADDR  	: LY = value;
-		case LYC_ADDR 	: LYC = value;
-		case DMA_ADDR 	: DMA = value;
-		case BGP_ADDR 	: BGP = value;
-		case OBP0_ADDR	: OBP0 = value;
-		case OBP1_ADDR	: OBP1 = value;
-		case WY_ADDR  	: WY = value;
-		case WX_ADDR  	: WX = value;
+		case LCDC_ADDR	: LCDC = value; break;
+		case STAT_ADDR	: STAT = value; break;
+		case SCX_ADDR 	: SCX = value;	break;
+		case SCY_ADDR 	: SCY = value;	break;
+		case LY_ADDR  	: LY = value;	break;
+		case LYC_ADDR 	: LYC = value;  break;
+		case DMA_ADDR 	: DMA = value;  break;
+		case BGP_ADDR 	: BGP = value;  break;
+		case OBP0_ADDR	: OBP0 = value; break;
+		case OBP1_ADDR	: OBP1 = value;	break;
+		case WY_ADDR  	: WY = value;	break;
+		case WX_ADDR  	: WX = value;	break;
 		default:
-			std::cout << "Unimplemented I/O write at address: " << std::hex << address << std::dec << std::endl;
+			std::cout << "Unimplemented I/oooo write at address: " << std::hex << address << std::dec << std::endl;
 	}
 }

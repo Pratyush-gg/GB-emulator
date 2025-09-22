@@ -38,6 +38,7 @@ uint8_t MMU::read_data(const uint16_t address) const {
     if (address < 0xFF80) {
         if (address == 0xFF01) return serial_data[0];
         if (address == 0xFF02) return serial_data[1];
+        if (address == 0xFF0F) return this->interrupt->IF;
 
         if (address >= TIMER_OFFSET && address <= TIMER_END)
             return timer->readAddr(address);
@@ -51,7 +52,7 @@ uint8_t MMU::read_data(const uint16_t address) const {
         return hram[offset];
     }
     if (address == 0xFFFF) {
-        return ie_register;
+        return this->interrupt->IE;
     }
     return -1;
 }
@@ -111,6 +112,12 @@ void MMU::write_data(uint16_t address, uint8_t value) {
             serial_data[1] = value;
             return;
         }
+
+        if (address == 0xFF0F) {
+            this->interrupt->IF = value;
+            return;
+        }
+
         if (address >= TIMER_OFFSET && address <= TIMER_END) {
             timer->writeAddr(address, value);
             return;
@@ -136,7 +143,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     if (address == 0xFFFF) {
-        ie_register = value;
+        this->interrupt->IE = value;
         return;
     }
 

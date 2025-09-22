@@ -111,6 +111,11 @@ void CPU::print_cpu_state(const uint16_t prev_PC) const {
 int CPU::cpu_step() {
     int num_cycles = 0;
 
+    if (this->EI_Triggered) {
+        this->interruptHandler->IME = true;
+        this->EI_Triggered = false;
+    }
+
     if (!halted) {
         const uint16_t prev_PC = regs.PC;
 
@@ -127,8 +132,7 @@ int CPU::cpu_step() {
         else num_cycles += res;
     }
     else {
-        if (interruptHandler->hasPendingInterrupt())
-            halted = false;
+        if (interruptHandler->hasPendingInterrupt()) halted = false;
         num_cycles += 4;
     }
 
@@ -140,7 +144,7 @@ int CPU::cpu_step() {
     return num_cycles;
 }
 
-void CPU::serviceInterrupt(uint16_t interruptVector) {
+void CPU::serviceInterrupt(const uint16_t interruptVector) {
     stack_push16(regs.PC);
     regs.PC = interruptVector;
 }

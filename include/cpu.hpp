@@ -64,10 +64,10 @@ enum interrupt_type {
 class CPU {
 public:
     explicit CPU(const std::shared_ptr<MMU> &mmu, const std::shared_ptr<InterruptHandler> &interruptHandler) :
-        fetch_data(0), mem_dest(0), dest_is_mem(false), current_opcode(0),
+        fetch_data( 0), mem_dest(0), dest_is_mem(false), current_opcode(0),
         halted(false), stepping(false),
-        bus(mmu),
-        interruptHandler(interruptHandler) { };
+        EI_Triggered(false), dbg_written(false), bus(mmu),
+        interruptHandler(interruptHandler) {};
 
     uint16_t fetch_data;
     uint16_t mem_dest;
@@ -110,7 +110,7 @@ private:
     // ts returns the number of cycles taken now
     static int process_NOP();
     int process_STOP();
-    int process_DI() const;
+    int process_DI();
     int process_EI();
     int process_JP();
     int process_AND();
