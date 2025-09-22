@@ -143,32 +143,14 @@ int CPU::process_CP() {
 int CPU::process_LD() {
     int cycles = 0;
     if (dest_is_mem) {
-        switch (current_instruction.reg2.value()) {
-            case REG_TYPE::RT_A:
-            case REG_TYPE::RT_F:
-            case REG_TYPE::RT_B:
-            case REG_TYPE::RT_C:
-            case REG_TYPE::RT_D:
-            case REG_TYPE::RT_E:
-            case REG_TYPE::RT_H:
-            case REG_TYPE::RT_L:
-                bus->write_data(mem_dest, fetch_data);
-                break;
-            case REG_TYPE::RT_AF:
-            case REG_TYPE::RT_BC:
-            case REG_TYPE::RT_DE:
-            case REG_TYPE::RT_HL:
-            case REG_TYPE::RT_SP:
-            case REG_TYPE::RT_PC:
-                cycles += 4;
-                bus->write_data16(mem_dest, fetch_data);
-                break;
-            default: break;
+        if (current_instruction.reg1 >= REG_TYPE::RT_AF) {
+            cycles += 4;
+            bus->write_data16(mem_dest, fetch_data);
+        }
+        else {
+            bus->write_data(mem_dest, fetch_data);
         }
         cycles += 4;
-
-        // TODO: IMPLEMENT MORE OF THIS
-
         return cycles;
     }
 
@@ -183,7 +165,7 @@ int CPU::process_LD() {
     }
 
     regs.set_register(current_instruction.reg1.value(), fetch_data);
-    return -1;
+    return 0;
 }
 
 int CPU::process_LDH() {
