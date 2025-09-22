@@ -4,7 +4,7 @@
 #include "interrupt.hpp"
 
 class Timer {
-    uint8_t dividerRegister = 0; // 0xff04 DIV
+    uint8_t dividerRegister = 0xAC00; // 0xff04 DIV
     uint8_t timerCounter = 0; // 0xff05 TIMA
     uint8_t timerModulo = 0; // 0xff06 TMA
     uint8_t timerControl = 0; // 0xff07 TAC

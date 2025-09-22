@@ -23,9 +23,9 @@ void Timer::tick(uint8_t cycles) {
 			default: break;
 		}
 
-		if ((timerControl & 0x4) && timer_update) {
+		if ((timerControl & (1 << 2)) && timer_update) {
             timerCounter++;
-			if (timerCounter == 0x00) {
+			if (timerCounter == 0xFF) {
                 this->timerCounter = this->timerModulo;
 				this->interruptHandler->interruptRequest(InterruptType::IT_TIMER);
 			}
