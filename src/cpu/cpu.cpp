@@ -2,7 +2,6 @@
 #include "../../include/instructions.hpp"
 
 #include <iostream>
-#include <iomanip>
 
 int CPU::fetch_instruction() {
     current_opcode = bus->read_data(regs.PC++);
@@ -81,8 +80,8 @@ uint16_t CPU::stack_pop16() {
 
 void CPU::dbg_update() {
     if (bus->read_data(0xFF02) == 0x81) {
-        const char c = bus->read_data(0xFF01);
-        dbg_msg[dbg_msg_size++] = c;
+        const unsigned char c = bus->read_data(0xFF01);
+        dbg_msg[dbg_msg_size++] = static_cast<char>(c);
         bus->write_data(0xFF02, 0);
     }
 }
@@ -98,13 +97,13 @@ void CPU::dbg_print() const {
 }
 
 void CPU::print_cpu_state(const uint16_t prev_PC) const {
-    std::cout << "PC: " << std::hex << prev_PC << std::dec << " Opcode: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(current_opcode) << std::dec;
-    std::cout << " A: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._a);
-    std::cout << " F: " << (regs.flags.c() ? 'C' : '_') << (regs.flags.h() ? 'H' : '_') << (regs.flags.n() ? 'N' : '_') << (regs.flags.z() ? 'Z' : '_');
-    std::cout << " BC: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._b) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._c) << std::dec;
-    std::cout << " DE: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._d) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._e) << std::dec;
-    std::cout << " HL: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._h) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._l) << std::dec << std::endl;
-    std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC)) << " " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC + 1)) << std::endl;
+//     std::cout << "PC: " << std::hex << prev_PC << std::dec << " Opcode: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(current_opcode) << std::dec;
+//     std::cout << " A: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._a);
+//     std::cout << " F: " << (regs.flags.c() ? 'C' : '_') << (regs.flags.h() ? 'H' : '_') << (regs.flags.n() ? 'N' : '_') << (regs.flags.z() ? 'Z' : '_');
+//     std::cout << " BC: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._b) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._c) << std::dec;
+//     std::cout << " DE: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._d) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._e) << std::dec;
+//     std::cout << " HL: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._h) << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(regs._l) << std::dec << std::endl;
+//     std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC)) << " " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(bus->read_data(regs.PC + 1)) << std::endl;
 }
 
 int CPU::cpu_step() {
