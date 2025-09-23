@@ -55,7 +55,7 @@ int CPU::decode_instruction() {
         case ADDR_MODE::AM_R_MR: {
             uint16_t addr = regs.read_register(current_instruction.reg2.value());
 
-            if (current_instruction.reg1 == REG_TYPE::RT_C) {
+            if (current_instruction.reg2 == REG_TYPE::RT_C) {
                 addr |= 0xFF00;
             }
             fetch_data = bus->read_data(addr);

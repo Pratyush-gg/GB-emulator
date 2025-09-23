@@ -144,7 +144,7 @@ int CPU::process_CP() {
 int CPU::process_LD() {
     int cycles = 0;
     if (dest_is_mem) {
-        if (current_instruction.reg1 >= REG_TYPE::RT_AF) {
+        if (current_instruction.reg2 >= REG_TYPE::RT_AF) {
             cycles += 4;
             bus->write_data16(mem_dest, fetch_data);
         }
@@ -156,12 +156,12 @@ int CPU::process_LD() {
     }
 
     if (current_instruction.mode == ADDR_MODE::AM_HL_SPR) {
-        regs.flags.set_h((regs.read_register(current_instruction.reg2.value()) & 0xF) + (fetch_data & 0x0F) > 0x10);
+        regs.flags.set_h((regs.read_register(current_instruction.reg2.value()) & 0xF) + (fetch_data & 0x0F) >= 0x10);
         regs.flags.set_c((regs.read_register(current_instruction.reg2.value()) & 0xFF) + (fetch_data & 0xFF) >= 0x100);
         regs.flags.set_z(false);
         regs.flags.set_n(false);
 
-        regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg2.value()) + (int8_t)fetch_data);
+        regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg2.value()) + (char)fetch_data);
         return cycles;
     }
 
@@ -256,31 +256,33 @@ int CPU::process_ADD() {
     int cycles = 0;
     uint32_t values = regs.read_register(current_instruction.reg1.value()) + fetch_data;
 
-    if (current_instruction.reg1 >= REG_TYPE::RT_AF) {
+    bool flag1 = current_instruction.reg1 >= REG_TYPE::RT_AF;
+
+    if (flag1) {
         cycles += 4;
     }
     if (current_instruction.reg1 == REG_TYPE::RT_SP) {
-        values = regs.read_register(current_instruction.reg1.value()) + static_cast<int8_t>(fetch_data);
+        values = regs.read_register(current_instruction.reg1.value()) + (char)(fetch_data);
     }
 
-    bool flag1 = false;
     bool z_flag = (values & 0xFF) == 0;
     bool h_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xF) + (fetch_data & 0xF)) >= 0x10;
-    bool c_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xFF) + (fetch_data & 0xFF)) >= 0x100;
+    bool c_flag = ((int)(regs.read_register(current_instruction.reg1.value()) & 0xFF) + (int)(fetch_data & 0xFF)) >= 0x100;
+    bool z1 = true;
 
-    if (current_instruction.reg1 >= REG_TYPE::RT_AF) {
-        flag1 = true;
+    if (flag1) {
+        z1 = false;
         h_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xFFF) + (fetch_data & 0xFFF)) >= 0x1000;
         c_flag = (uint32_t(regs.read_register(current_instruction.reg1.value())) + uint32_t(fetch_data)) >= 0x10000;
     }
     if (current_instruction.reg1 == REG_TYPE::RT_SP) {
         z_flag = false;
         h_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xF) + (fetch_data & 0xF)) >= 0x10;
-        c_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xFF) + (fetch_data & 0xFF)) >= 0x100;
+        c_flag = ((int)(regs.read_register(current_instruction.reg1.value()) & 0xFF) + (int)(fetch_data & 0xFF)) >= 0x100;
     }
 
     regs.set_register(current_instruction.reg1.value(), values & 0xFFFF);
-    if (!flag1) {
+    if (z1) {
         regs.flags.set_z(z_flag);
     }
     regs.flags.set_h(h_flag);
@@ -322,7 +324,7 @@ int CPU::process_SBC() {
 
     int z_flag = (regs.read_register(current_instruction.reg1.value()) - values) == 0;
     int h_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xF)  - (fetch_data & 0xF) - (regs.flags.c() ? 1 : 0)) < 0;
-    int c_flag = (regs.read_register(current_instruction.reg1.value()) < values);
+    int c_flag = ((regs.read_register(current_instruction.reg1.value()) - (fetch_data) - (regs.flags.c() ? 1 : 0)) < 0);
 
     regs.set_register(current_instruction.reg1.value(), regs.read_register(current_instruction.reg1.value()) - values);
     regs.flags.set_z(z_flag);
