@@ -2,7 +2,6 @@
 #include "../../include/instructions.hpp"
 
 #include <iostream>
-#include <iomanip>
 
 int CPU::fetch_instruction() {
     current_opcode = bus->read_data(regs.PC++);
