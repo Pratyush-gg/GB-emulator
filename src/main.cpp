@@ -6,6 +6,7 @@
 
 #include "SFML/Graphics.hpp"
 #include <iostream>
+#include "../fonts/ttf/JetBrainsMono-Medium.h"
 
 int main(int argc, char* argv[]) {
 
@@ -16,9 +17,8 @@ int main(int argc, char* argv[]) {
 
     const ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
-    ImFontConfig fontConfig;
-    fontConfig.SizePixels = 15.0f;
-    io.Fonts->AddFontDefault(&fontConfig);
+    // io.Fonts->AddFontFromFileTTF(R"(..\JetBrainsMono-Bold.ttf)", 15.0f);
+    io.Fonts->AddFontFromMemoryTTF(__JetBrainsMono_Medium_ttf, __JetBrainsMono_Medium_ttf_len, 16.0f);
     ImGui::SFML::UpdateFontTexture();
 
     auto emulator = std::make_shared<Emulator>(argv[1]);
