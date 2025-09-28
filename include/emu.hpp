@@ -6,8 +6,16 @@
 #include "mmu.hpp"
 #include "cart.hpp"
 
+struct DebugContext {
+    std::reference_wrapper<const MMU> mmu;
+    std::reference_wrapper<const RegisterFile> regs;
+
+    DebugContext(std::reference_wrapper<const MMU> mmu,
+        std::reference_wrapper<const RegisterFile> regs) :
+        mmu(mmu), regs(regs) {}
+};
+
 class Emulator {
-private:
     bool running;
     bool paused;
 
@@ -25,9 +33,10 @@ private:
     void renderScreen();
     void handleCycles() const;
 
-    // add extra SDL shit
-
 public:
     explicit Emulator(const std::string& rom_filename);
     void run();
+    void run_one();
+
+    DebugContext getDebugContext() const;
 };

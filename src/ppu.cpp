@@ -64,3 +64,7 @@ void PicturePU::io_write(const uint16_t address, const uint8_t value) {
 			std::cout << "Unimplemented I/oooo write at address: " << std::hex << address << std::dec << std::endl;
 	}
 }
+
+void PicturePU::tick(unsigned cycles) {
+	clock += cycles;
+}

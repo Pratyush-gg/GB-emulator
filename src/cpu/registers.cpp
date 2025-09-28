@@ -1,6 +1,6 @@
 #include "../../include/cpu.hpp"
 
-uint16_t RegisterFile::read_register(REG_TYPE reg) {
+uint16_t RegisterFile::read_register(const REG_TYPE reg) const {
     auto get16 = [&](auto high_reg, auto low_reg) -> uint16_t {
         return (high_reg << 8) | low_reg;
     };
@@ -23,7 +23,7 @@ uint16_t RegisterFile::read_register(REG_TYPE reg) {
         case REG_TYPE::RT_PC: return PC;
         case REG_TYPE::RT_SP: return SP;
 
-        case REG_TYPE::RT_NONE: return 0;
+        default:  return 0;
     }
 }
 

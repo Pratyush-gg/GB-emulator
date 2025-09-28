@@ -2,15 +2,29 @@
 #include <cstdint>
 #include <array>
 
+enum LCD_MODE {
+	MODE_VBLANK,
+	MODE_HBLANK,
+	MODE_OAM,
+	MODE_XFER,
+};
+
 class PicturePU {
+	static constexpr unsigned SCREEN_WIDTH = 160;
+	static constexpr unsigned SCREEN_HEIGHT = 144;;
+
 	static constexpr uint16_t VRAM_OFFSET = 0x8000;
 	static constexpr uint16_t VRAM_SIZE = 0x2000; // 8 KiB
 
 	static constexpr uint16_t OAM_OFFSET = 0xFE00;
 	static constexpr uint16_t OAM_SIZE = 0xA0;
 
+	uint8_t clock = 0;
+
 	std::array<uint8_t, VRAM_SIZE> vram = {};
 	std::array<uint8_t, OAM_SIZE> oam = {};
+
+	std::array<uint8_t, SCREEN_WIDTH * SCREEN_HEIGHT * 4> framebuffer = {};
 
 	/*
 	0xFF40 – LCDC   (LCD Control)
@@ -40,26 +54,28 @@ class PicturePU {
 	static constexpr uint16_t WY_ADDR	= 0xFF4A;
 	static constexpr uint16_t WX_ADDR   = 0xFF4B;
 
-	uint8_t LCDC = 0;
+	uint8_t LCDC = 0x91;
 	uint8_t STAT = 0;
 	uint8_t SCY = 0;
 	uint8_t SCX = 0;
 	uint8_t LY  = 0;
 	uint8_t LYC = 0;
 	uint8_t DMA = 0;
-	uint8_t BGP = 0;
-	uint8_t OBP0 = 0;
-	uint8_t OBP1 = 0;
+	uint8_t BGP = 0xFC;
+	uint8_t OBP0 = 0xFF;
+	uint8_t OBP1 = 0xFF;
 	uint8_t WY  = 0;
 	uint8_t WX  = 0;
 
 public:
-	uint8_t read_vram(uint16_t address) const;
+	[[nodiscard]] uint8_t read_vram(uint16_t address) const;
 	void write_vram(uint16_t address, uint8_t value);
 
-	uint8_t read_oam(uint16_t address) const;
+	[[nodiscard]] uint8_t read_oam(uint16_t address) const;
 	void write_oam(uint16_t address, uint8_t value);
 
-	uint8_t io_read(uint16_t address) const;
+	[[nodiscard]] uint8_t io_read(uint16_t address) const;
 	void io_write(uint16_t address, uint8_t value);
+
+	void tick(unsigned cycles);
 };

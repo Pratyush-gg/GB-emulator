@@ -49,7 +49,7 @@ public:
 
     RegisterFile() : _a(1), _b(0), _c(0x13), _d(0), _e(0xD8), _h(0x01), _l(0x4D), SP(0xFFFE), PC(0x0100) { flags.set_byte(0xB0); }
 
-    uint16_t read_register(REG_TYPE reg);
+    uint16_t read_register(REG_TYPE reg) const;
     void set_register(REG_TYPE reg, uint16_t value);
 };
 
@@ -85,6 +85,7 @@ public:
     char dbg_msg[1024] = {0};
 
     RegisterFile regs;
+    std::reference_wrapper<RegisterFile> getRegisterDebug();
 
     int cpu_step();
     int fetch_instruction();

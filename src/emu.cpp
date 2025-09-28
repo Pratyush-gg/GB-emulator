@@ -20,17 +20,14 @@ Emulator::Emulator(const std::string& rom_filename):
 
 void Emulator::run() {
     while (running) {
-        if (paused) {
-            continue;
-        }
-        // pollInput();
-        updateState();
-        // renderScreen();
-
-        if (!this->running) {
-            break;
-        }
+        this->run_one();
     }
+}
+
+void Emulator::run_one() {
+    // pollInput();
+    updateState();
+    // renderScreen();
 }
 
 void Emulator::updateState() {
@@ -41,4 +38,11 @@ void Emulator::updateState() {
         std::cout << "CPU stopped." << std::endl;
         this->running = false;
     }
+}
+
+DebugContext Emulator::getDebugContext() const {
+    return DebugContext {
+         *this->bus,
+         this->cpu->getRegisterDebug()
+    };
 }

@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "emu.hpp"
+
 int CPU::fetch_instruction() {
     current_opcode = bus->read_data(regs.PC++);
     current_instruction = instructions[current_opcode];
@@ -147,4 +149,8 @@ int CPU::cpu_step() {
 void CPU::serviceInterrupt(const uint16_t interruptVector) {
     stack_push16(regs.PC);
     regs.PC = interruptVector;
+}
+
+std::reference_wrapper<RegisterFile> CPU::getRegisterDebug() {
+    return regs;
 }
