@@ -23,7 +23,11 @@ extern debuggerInst instr_table[256];
 class Debugger {
     std::shared_ptr<Emulator> emu;
     DebugContext debugContext;
-    unsigned numLines = 30;
+    unsigned disassembler_num_lines = 30;
+
+    uint16_t hexview_curr_mem = 0x100;
+    unsigned hexview_num_lines = 30;
+    unsigned hexview_num_cols = 8;
 
     std::stack<uint16_t> return_points;
     std::unordered_set<uint16_t> breakpoints;
@@ -55,6 +59,8 @@ public:
     }
 
     void render();
+
+    void render_hex_view() const;
 
     void render_registers_panel() const;
 

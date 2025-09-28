@@ -17,7 +17,6 @@ int main(int argc, char* argv[]) {
 
     const ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
-    // io.Fonts->AddFontFromFileTTF(R"(..\JetBrainsMono-Bold.ttf)", 15.0f);
     io.Fonts->AddFontFromMemoryTTF(__JetBrainsMono_Medium_ttf, __JetBrainsMono_Medium_ttf_len, 16.0f);
     ImGui::SFML::UpdateFontTexture();
 
@@ -37,8 +36,6 @@ int main(int argc, char* argv[]) {
                 window.close();
             }
         }
-
-        // std::cout << "in loop :>" << std::endl;
 
         ImGui::SFML::Update(window, deltaClock.restart());
 

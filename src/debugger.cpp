@@ -4,6 +4,9 @@
 
 #include "debugger.hpp"
 
+#include <iomanip>
+#include <sstream>
+
 #include "imgui.h"
 
 void Debugger::render() {
@@ -17,15 +20,52 @@ void Debugger::render() {
     host_window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
     host_window_flags |= ImGuiWindowFlags_NoBackground;
 
-    // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
     ImGui::Begin("Main", nullptr , host_window_flags);
-    // ImGui::PopStyleVar();
 
-    // render_main_menu_bar();
     render_disassembly_panel();
     render_command_prompt();
     render_registers_panel();
+    render_hex_view();
+
+    ImGui::End();
+}
+
+void Debugger::render_hex_view() const {
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const ImVec2 main_pos = viewport->WorkPos;
+    const ImVec2 main_size = viewport->WorkSize;
+
+    const float prompt_height = ImGui::GetTextLineHeightWithSpacing() + 20;
+    const float panelHeight = main_size.y - 200.0f - prompt_height;
+    constexpr float panelWidth = 320.0f;
+
+    const auto panel_pos = ImVec2(main_pos.x + main_size.x - panelWidth, main_pos.y + 200.0f);
+    const auto panel_size = ImVec2(panelWidth, panelHeight);
+
+    constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                                              ImGuiWindowFlags_NoResize;
+    ImGui::SetNextWindowPos(panel_pos);
+    ImGui::SetNextWindowSize(panel_size);
+
+    ImGui::Begin("Hex Viewer", nullptr, window_flags);
+
+    uint16_t curr_addr = hexview_curr_mem;
+    for (unsigned line = 0; line < hexview_num_lines; line++) {
+        std::ostringstream currLine;
+        currLine << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << curr_addr << ":";
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), currLine.str().c_str());
+
+        currLine.clear();
+        currLine.str("");
+
+        ImGui::SameLine(70.0f);
+
+        for (unsigned loc = 0; loc < hexview_num_cols; loc++) {
+            currLine << std::hex << std::uppercase << std::setw(2) << static_cast<unsigned>(debugContext.mmu.get().read_data(curr_addr)) << "  ";
+            curr_addr++;
+        }
+        ImGui::TextColored(ImVec4(0, 1, 1, 1), currLine.str().c_str());
+    }
 
     ImGui::End();
 }
@@ -36,10 +76,10 @@ void Debugger::render_registers_panel() const {
     const ImVec2 main_size = viewport->WorkSize;
 
     constexpr float panelHeight = 200.0f;
-    constexpr float panelWidth = 300.0f;
+    constexpr float panelWidth = 320.0f;
 
     const auto panel_pos = ImVec2(main_pos.x + main_size.x - panelWidth, main_pos.y);
-    constexpr auto panel_size = ImVec2(panelWidth, panelHeight);
+    const auto panel_size = ImVec2(panelWidth, panelHeight);
 
     constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
                                               ImGuiWindowFlags_NoResize;
@@ -51,7 +91,7 @@ void Debugger::render_registers_panel() const {
         ImGui::Text("%s:", label.c_str());
         ImGui::SameLine(50.0f);
         const std::string formatString = (value >= REG_TYPE::RT_AF) ? "0x%04X" : "0x%02X";
-        ImGui::TextColored(ImVec4(1, 0.5f, 0.5f, 1), formatString.c_str(), debugContext.regs.get().read_register(value));
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), formatString.c_str(), debugContext.regs.get().read_register(value));
     };
 
     ImGui::Begin("Registers", nullptr, window_flags);
@@ -121,6 +161,12 @@ void Debugger::render_command_prompt() {
                 this->toggleBreakpoint(temp_addr);
             }
         }
+        else if (strncmp(commandBuffer, "h ", 2) == 0) {
+            uint16_t temp_addr;
+            if (sscanf(commandBuffer, "h %hx", &temp_addr) == 1) {
+                this->hexview_curr_mem = temp_addr;
+            }
+        }
         strcpy(commandBuffer, "");
         ImGui::SetKeyboardFocusHere(-1);
     }
@@ -149,7 +195,7 @@ void Debugger::render_disassembly_panel() const {
     ImGui::Begin("Disassembly", nullptr, window_flags);
 
     uint16_t addr = getCurrentInstruction();
-    for (unsigned line = 0; line < numLines; line++) {
+    for (unsigned line = 0; line < disassembler_num_lines; line++) {
         const uint8_t opcode = debugContext.mmu.get().read_data(addr);
         const auto &[mnemonic, length, immediate] = instr_table[opcode];
 
