@@ -16,7 +16,9 @@ int main(int argc, char* argv[]) {
 
     const ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
-    io.Fonts->AddFontFromFileTTF(R"(C:\Users\shawn\CLionProjects\GB-emulator\fonts\ttf\JetBrainsMono-Bold.ttf)", 15.0f);
+    ImFontConfig fontConfig;
+    fontConfig.SizePixels = 15.0f;
+    io.Fonts->AddFontDefault(&fontConfig);
     ImGui::SFML::UpdateFontTexture();
 
     auto emulator = std::make_shared<Emulator>(argv[1]);
