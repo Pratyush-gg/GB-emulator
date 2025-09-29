@@ -41,15 +41,22 @@ class Debugger {
     }
 
     uint16_t getNextInstruction(const uint16_t instruction) const {
-        int sz = instr_table[debugContext.mmu.get().read_data(instruction)].length;
+        const int sz = instr_table[debugContext.mmu.get().read_data(instruction)].length;
         return instruction + sz;
     }
+
+    bool running = false;
+    bool checkStack = false;
+
+    int instPerFrame = 10;
 
     void stepIn();
     void stepOut();
     void stepOver();
     void runContinue();
     void toggleBreakpoint(uint16_t address);
+
+    void inLoop();
 
 public:
     explicit Debugger(const std::shared_ptr<Emulator>& emu) :
@@ -59,13 +66,9 @@ public:
     }
 
     void render();
-
     void render_hex_view() const;
-
     void render_registers_panel() const;
-
     void render_command_prompt();
-
     void render_disassembly_panel() const;
 };
 

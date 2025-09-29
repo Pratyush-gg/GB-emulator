@@ -1,7 +1,3 @@
-//
-// Created by shawn on 25-09-2025.
-//
-
 #include "debugger.hpp"
 
 #include <iomanip>
@@ -102,14 +98,15 @@ void Debugger::render_registers_panel() const {
         renderReg("C", REG_TYPE::RT_C);
         renderReg("D", REG_TYPE::RT_D);
 
-        renderReg("AF", REG_TYPE::RT_AF);
-        renderReg("BC", REG_TYPE::RT_BC);
-        renderReg("SP", REG_TYPE::RT_SP);
 
         renderReg("E", REG_TYPE::RT_E);
         renderReg("F", REG_TYPE::RT_F);
         renderReg("H", REG_TYPE::RT_H);
         renderReg("L", REG_TYPE::RT_L);
+
+        renderReg("AF", REG_TYPE::RT_AF);
+        renderReg("BC", REG_TYPE::RT_BC);
+        renderReg("SP", REG_TYPE::RT_SP);
 
         renderReg("DE", REG_TYPE::RT_DE);
         renderReg("HL", REG_TYPE::RT_HL);
@@ -136,10 +133,14 @@ void Debugger::render_command_prompt() {
     ImGui::SetNextWindowPos(panel_pos);
     ImGui::SetNextWindowSize(panel_size);
 
+
     ImGui::Begin("Command Prompt", nullptr, window_flags);
     char commandBuffer[256] = "";
     ImGui::PushItemWidth(-1.0f);
-    if (ImGui::InputTextWithHint("##Prompt", "Enter command...", commandBuffer, sizeof(commandBuffer),
+    if (running) {
+        inLoop();
+    }
+    else if (ImGui::InputTextWithHint("##Prompt", "Enter command...", commandBuffer, sizeof(commandBuffer),
             ImGuiInputTextFlags_EnterReturnsTrue)) {
         if (strcmp(commandBuffer, "s") == 0) {
             this->stepIn();
@@ -165,6 +166,12 @@ void Debugger::render_command_prompt() {
             uint16_t temp_addr;
             if (sscanf(commandBuffer, "h %hx", &temp_addr) == 1) {
                 this->hexview_curr_mem = temp_addr;
+            }
+        }
+        else if (strncmp(commandBuffer, "speed  ", 6) == 0) {
+            unsigned speed;
+            if (sscanf(commandBuffer, "speed %u", &speed) == 1) {
+                this->instPerFrame = speed;
             }
         }
         strcpy(commandBuffer, "");
@@ -240,11 +247,14 @@ void Debugger::stepOut() {
         stepOver();
     }
     else {
-        do {
-            emu->run_one();
-        } while (!breakpoints.count(this->getCurrentInstruction())
-            && getCurrentInstruction() != return_points.top());
-        if (getCurrentInstruction() == return_points.top()) return_points.pop();
+        emu->run_one();
+        running = true;
+        checkStack = true;
+        // do {
+        //     emu->run_one();
+        // } while (!breakpoints.count(this->getCurrentInstruction())
+        //     && getCurrentInstruction() != return_points.top());
+        // if (getCurrentInstruction() == return_points.top()) return_points.pop();
     }
 }
 
@@ -254,7 +264,7 @@ void Debugger::stepOver() {
         const int nextInst = this->getNextInstruction();
         return_points.push(nextInst);
         stepOut();
-        if (!return_points.empty() && getCurrentInstruction() == return_points.top()) return_points.pop();
+        // if (!return_points.empty() && getCurrentInstruction() == return_points.top()) return_points.pop();
     }
     else {
         this->stepIn();
@@ -262,15 +272,37 @@ void Debugger::stepOver() {
 }
 
 void Debugger::runContinue() {
-    do {
-        if (!return_points.empty() && getCurrentInstruction() == return_points.top()) return_points.pop();
-        emu->run_one();
-    } while (!breakpoints.count(this->getCurrentInstruction()));
+    // do {
+    //     emu->run_one();
+    //     if (!return_points.empty() && getCurrentInstruction() == return_points.top()) return_points.pop();
+    // } while (!breakpoints.count(this->getCurrentInstruction()));
 
-    if (!return_points.empty() && getCurrentInstruction() == return_points.top()) return_points.pop();
+    // if (!return_points.empty() && getCurrentInstruction() == return_points.top()) return_points.pop();
+
+    emu->run_one();
+    running = true;
 }
 
 void Debugger::toggleBreakpoint(const uint16_t address) {
     if (breakpoints.count(address)) breakpoints.erase(address);
     else this->breakpoints.insert(address);
+}
+
+void Debugger::inLoop() {
+    unsigned t = this->instPerFrame;
+    while (t--) {
+        if (!return_points.empty() && getCurrentInstruction() == return_points.top()) {
+            return_points.pop();
+            if (checkStack) {
+                running = false;
+                checkStack = false;
+                break;
+            }
+        }
+        if (breakpoints.count(this->getCurrentInstruction())) {
+            running = false;
+            break;
+        }
+        emu->run_one();
+    }
 }
