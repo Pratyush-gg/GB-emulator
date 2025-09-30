@@ -1,5 +1,6 @@
 #include "debugger.hpp"
 
+#include <functional>
 #include <iomanip>
 #include <sstream>
 
@@ -49,7 +50,7 @@ void Debugger::render_hex_view() const {
     for (unsigned line = 0; line < hexview_num_lines; line++) {
         std::ostringstream currLine;
         currLine << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << curr_addr << ":";
-        ImGui::TextColored(ImVec4(1, 0, 0, 1), currLine.str().c_str());
+        ImGui::TextColored(ImVec4(1, 1, 0, 1), currLine.str().c_str());
 
         currLine.clear();
         currLine.str("");
@@ -60,7 +61,7 @@ void Debugger::render_hex_view() const {
             currLine << std::hex << std::uppercase << std::setw(2) << static_cast<unsigned>(debugContext.mmu.get().read_data(curr_addr)) << "  ";
             curr_addr++;
         }
-        ImGui::TextColored(ImVec4(0, 1, 1, 1), currLine.str().c_str());
+        ImGui::TextColored(ImVec4(1, 1, 1, 0.9), currLine.str().c_str());
     }
 
     ImGui::End();
@@ -75,7 +76,7 @@ void Debugger::render_registers_panel() const {
     constexpr float panelWidth = 320.0f;
 
     const auto panel_pos = ImVec2(main_pos.x + main_size.x - panelWidth, main_pos.y);
-    const auto panel_size = ImVec2(panelWidth, panelHeight);
+    constexpr auto panel_size = ImVec2(panelWidth, panelHeight);
 
     constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
                                               ImGuiWindowFlags_NoResize;
@@ -117,6 +118,45 @@ void Debugger::render_registers_panel() const {
     ImGui::End();
 }
 
+void Debugger::handle_command(char* commandBuffer) {
+
+    std::string command(commandBuffer);
+
+    const size_t first = command.find_first_not_of(" \t\n\r");
+    const size_t last = command.find_last_not_of(" \t\n\r");
+    if (std::string::npos == first || std::string::npos == last) {
+        command = prevCommandBuffer;
+    }
+    else {
+        command = command.substr(first, last - first + 1);
+    }
+
+
+    std::stringstream ss(command);
+    std::string token;
+    ss >> token;
+
+    if (token == "s")       this->stepIn();
+    else if (token == "n")  this->stepOver();
+    else if (token == "f")  this->stepOut();
+    else if (token == "c")  this->runContinue();
+    else if (token == "b") {
+        uint16_t addr; ss >> std::hex >> addr;
+        this->toggleBreakpoint(addr);
+    }
+    else if (token == "h") {
+        uint16_t addr; ss >> std::hex >> addr;
+        this->hexview_curr_mem = addr;
+    }
+    else if (token == "speed") {
+        unsigned speed; ss >> speed;
+        std::cout << speed << std::endl;
+        this->instPerFrame = speed;
+    }
+    strcpy(prevCommandBuffer, command.c_str());
+    strcpy(commandBuffer, "");
+}
+
 void Debugger::render_command_prompt() {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     const ImVec2 main_pos = viewport->WorkPos;
@@ -133,7 +173,6 @@ void Debugger::render_command_prompt() {
     ImGui::SetNextWindowPos(panel_pos);
     ImGui::SetNextWindowSize(panel_size);
 
-
     ImGui::Begin("Command Prompt", nullptr, window_flags);
     char commandBuffer[256] = "";
     ImGui::PushItemWidth(-1.0f);
@@ -142,41 +181,9 @@ void Debugger::render_command_prompt() {
     }
     else if (ImGui::InputTextWithHint("##Prompt", "Enter command...", commandBuffer, sizeof(commandBuffer),
             ImGuiInputTextFlags_EnterReturnsTrue)) {
-        if (strcmp(commandBuffer, "s") == 0) {
-            this->stepIn();
-        }
-        else if (strcmp(commandBuffer, "n") == 0) {
-            this->stepOver();
-        }
-        else if (strcmp(commandBuffer, "f") == 0) {
-            if (!return_points.empty()) {
-                this->stepOut();
-            }
-        }
-        else if (strcmp(commandBuffer, "c") == 0) {
-            this->runContinue();
-        }
-        else if (strncmp(commandBuffer, "b ", 2) == 0) {
-            uint16_t temp_addr;
-            if (sscanf(commandBuffer, "b %hx", &temp_addr) == 1) {
-                this->toggleBreakpoint(temp_addr);
-            }
-        }
-        else if (strncmp(commandBuffer, "h ", 2) == 0) {
-            uint16_t temp_addr;
-            if (sscanf(commandBuffer, "h %hx", &temp_addr) == 1) {
-                this->hexview_curr_mem = temp_addr;
-            }
-        }
-        else if (strncmp(commandBuffer, "speed  ", 6) == 0) {
-            unsigned speed;
-            if (sscanf(commandBuffer, "speed %u", &speed) == 1) {
-                this->instPerFrame = speed;
-            }
-        }
-        strcpy(commandBuffer, "");
-        ImGui::SetKeyboardFocusHere(-1);
+        handle_command(commandBuffer);
     }
+    ImGui::SetKeyboardFocusHere(-1);
     ImGui::PopItemWidth();
     ImGui::End();
 }
@@ -187,7 +194,7 @@ void Debugger::render_disassembly_panel() const {
     const ImVec2 main_pos = viewport->WorkPos;
     const ImVec2 main_size = viewport->WorkSize;
 
-    constexpr float panel_width = 250.0f;
+    constexpr float panel_width = 350.0f;
     const float prompt_height = ImGui::GetTextLineHeightWithSpacing() + 20;
 
     const auto panel_pos = ImVec2(main_pos.x + 8.0f, main_pos.y + 5.0f);
@@ -206,7 +213,15 @@ void Debugger::render_disassembly_panel() const {
         const uint8_t opcode = debugContext.mmu.get().read_data(addr);
         const auto &[mnemonic, length, immediate] = instr_table[opcode];
 
+        std::stringstream op_buf;
         char buf[64];
+
+
+        for (unsigned off = 0; off < length; off++) {
+            op_buf << std::hex << std::setw(2) << std::setfill('0') <<
+                static_cast<unsigned>(debugContext.mmu.get().read_data(addr + off));
+            op_buf << " "[off == length - 1];
+        }
 
         if (immediate == 2) {
             const uint16_t imm = debugContext.mmu.get().read_data(addr + 1)
@@ -222,14 +237,19 @@ void Debugger::render_disassembly_panel() const {
         }
 
         if (addr == getCurrentInstruction()) {
-            ImGui::TextColored(ImVec4(1, 1, 0, 1), "->%04X:\t%s", addr, buf);
+            ImGui::TextColored(ImVec4(1, 1, 0, 1), "->0x%04X:", addr);
         }
         else if (breakpoints.count(addr)) {
-            ImGui::TextColored(ImVec4(1, 0, 1, 1), "* %04X:\t%s", addr, buf);
+            ImGui::TextColored(ImVec4(1, 0, 1, 1), "* 0x%04X:", addr);
         }
         else {
-            ImGui::Text("%04X:\t%s", addr, buf);
+            ImGui::TextColored(ImVec4(1, 1, 1, 0.9), "0x%04X:", addr);
         }
+        ImGui::SameLine(90.0f);
+        ImGui::TextColored(ImVec4(1, 1, 1, 0.7), "%8s", op_buf.str().c_str());
+        ImGui::SameLine(180.0f);
+        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s", buf);
+
         addr += length;
     }
     ImGui::End();

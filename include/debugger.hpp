@@ -48,15 +48,17 @@ class Debugger {
     bool running = false;
     bool checkStack = false;
 
-    int instPerFrame = 10;
+    unsigned instPerFrame = (1 << 16);
 
     void stepIn();
     void stepOut();
     void stepOver();
     void runContinue();
     void toggleBreakpoint(uint16_t address);
-
     void inLoop();
+    void handle_command(char *commandBuffer);
+
+    char prevCommandBuffer[256] = "s\0";
 
 public:
     explicit Debugger(const std::shared_ptr<Emulator>& emu) :
