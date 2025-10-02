@@ -2,6 +2,7 @@
 #include "../../include/instructions.hpp"
 
 #include <iostream>
+#include <iomanip>
 
 #include "emu.hpp"
 

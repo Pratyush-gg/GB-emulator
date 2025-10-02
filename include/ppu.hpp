@@ -24,6 +24,15 @@ class PicturePU {
 	std::array<uint8_t, VRAM_SIZE> vram = {};
 	std::array<uint8_t, OAM_SIZE> oam = {};
 
+	struct DMA {
+		bool active;
+		uint8_t byte;
+		uint8_t value;
+		uint8_t start_delay;
+	};
+
+	DMA dma{};
+
 	std::array<uint8_t, SCREEN_WIDTH * SCREEN_HEIGHT * 4> framebuffer = {};
 
 	/*
@@ -78,4 +87,8 @@ public:
 	void io_write(uint16_t address, uint8_t value);
 
 	void tick(unsigned cycles);
+
+	void dma_start(uint8_t value);
+	void dma_tick();
+	bool dma_transferring();
 };

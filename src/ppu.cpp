@@ -68,3 +68,32 @@ void PicturePU::io_write(const uint16_t address, const uint8_t value) {
 void PicturePU::tick(unsigned cycles) {
 	clock += cycles;
 }
+
+void PicturePU::dma_start(const uint8_t value) {
+	dma.active = true;
+	dma.byte = 0;
+	dma.start_delay = 2;
+	dma.value = value;
+}
+
+void PicturePU::dma_tick() {
+	if (!dma.active) return;
+
+	if (dma.start_delay > 0) {
+		dma.start_delay--;
+		return;
+	}
+
+	write_oam(dma.byte, bus->read_data((dma.value * 0x100) + dma.byte));
+	dma.byte++;
+
+	dma.active = dma.byte < 0xA0;
+
+	if (!dma.active) {
+		std::cout << "DMA transfer complete" << std::endl;
+	}
+}
+
+bool PicturePU::dma_transferring() {
+	return dma.active;
+}

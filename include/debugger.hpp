@@ -9,6 +9,8 @@
 #include <ostream>
 #include <stack>
 #include <unordered_set>
+#include <vector>
+#include <SFML/Graphics/Texture.hpp>
 
 #include "emu.hpp"
 
@@ -60,11 +62,20 @@ class Debugger {
 
     char prevCommandBuffer[256] = "s\0";
 
+    static constexpr unsigned int TILE_DATA_WIDTH_PX = 16 * 8;
+    static constexpr unsigned int TILE_DATA_HEIGHT_PX = 24 * 8;
+
+    sf::Texture tile_texture;
+    std::vector<sf::Uint8> tile_pixel_buffer;
+
 public:
     explicit Debugger(const std::shared_ptr<Emulator>& emu) :
         emu(emu) ,
         debugContext(emu->getDebugContext()) {
         std::cout << "Debugger created" << std::endl;
+
+        tile_texture.create(TILE_DATA_WIDTH_PX, TILE_DATA_HEIGHT_PX);
+        tile_pixel_buffer.resize(TILE_DATA_WIDTH_PX * TILE_DATA_HEIGHT_PX * 4);
     }
 
     void render();
@@ -72,6 +83,7 @@ public:
     void render_registers_panel() const;
     void render_command_prompt();
     void render_disassembly_panel() const;
+    void render_tile_data_panel();
 };
 
 inline debuggerInst instr_table[256] = {

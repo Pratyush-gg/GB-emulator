@@ -3,8 +3,10 @@
 #include <functional>
 #include <iomanip>
 #include <sstream>
+#include <SFML/Graphics/Color.hpp>
 
 #include "imgui.h"
+#include "imgui-SFML.h"
 
 void Debugger::render() {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -20,9 +22,78 @@ void Debugger::render() {
     ImGui::Begin("Main", nullptr , host_window_flags);
 
     render_disassembly_panel();
+    render_tile_data_panel();
     render_command_prompt();
     render_registers_panel();
     render_hex_view();
+
+    ImGui::End();
+}
+
+void Debugger::render_tile_data_panel() {
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const ImVec2 main_pos = viewport->WorkPos;
+    const ImVec2 main_size = viewport->WorkSize;
+
+    constexpr float disassembly_width = 350.0f;
+    constexpr float right_panel_width = 320.0f;
+    const float prompt_height = ImGui::GetTextLineHeightWithSpacing() + 20;
+    constexpr float margin = 16.0f;
+
+    const auto panel_pos = ImVec2(main_pos.x + disassembly_width + margin, main_pos.y + 5.0f);
+    const auto panel_size = ImVec2(main_size.x - disassembly_width - right_panel_width - (2 * margin), main_size.y - prompt_height - 10.0f);
+
+    constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                                              ImGuiWindowFlags_NoResize | ImGuiWindowFlags_HorizontalScrollbar;
+    ImGui::SetNextWindowPos(panel_pos);
+    ImGui::SetNextWindowSize(panel_size);
+
+    ImGui::Begin("Tile Data", nullptr, window_flags);
+
+    const sf::Color tile_colors[4] = {
+        sf::Color(155, 188, 15),
+        sf::Color(139, 172, 15),
+        sf::Color(48, 98, 48),
+        sf::Color(15, 56, 15)
+    };
+
+    const uint16_t startLocation = 0x8000;
+    const unsigned int view_width_px = 16 * 8;
+
+    for (int tile_idx = 0; tile_idx < 384; ++tile_idx) {
+        const int tile_x_base = (tile_idx % 16) * 8;
+        const int tile_y_base = (tile_idx / 16) * 8;
+
+        for (int row = 0; row < 8; ++row) {
+            const uint16_t row_addr = startLocation + (tile_idx * 16) + (row * 2);
+            const uint8_t byte1 = debugContext.mmu.get().read_data(row_addr);
+            const uint8_t byte2 = debugContext.mmu.get().read_data(row_addr + 1);
+
+            for (int col = 0; col < 8; ++col) {
+                const int bit = 7 - col;
+                const uint8_t hi_bit = (byte2 >> bit) & 1;
+                const uint8_t lo_bit = (byte1 >> bit) & 1;
+                const uint8_t color_index = (hi_bit << 1) | lo_bit;
+
+                const int px = tile_x_base + col;
+                const int py = tile_y_base + row;
+                const size_t index = (py * view_width_px + px) * 4;
+
+                const sf::Color& color = tile_colors[color_index];
+                tile_pixel_buffer[index]     = color.r;
+                tile_pixel_buffer[index + 1] = color.g;
+                tile_pixel_buffer[index + 2] = color.b;
+                tile_pixel_buffer[index + 3] = color.a;
+            }
+        }
+    }
+    
+    tile_texture.update(tile_pixel_buffer.data());
+
+    const float available_width = ImGui::GetContentRegionAvail().x;
+    const float scale = available_width / view_width_px;
+
+    ImGui::Image(tile_texture, ImVec2(view_width_px * scale, (24 * 8) * scale));
 
     ImGui::End();
 }

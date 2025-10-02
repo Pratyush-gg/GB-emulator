@@ -10,14 +10,17 @@
 
 int main(int argc, char* argv[]) {
 
-    sf::RenderWindow window(sf::VideoMode({1200, 720}), "GB-emulator");
+    sf::RenderWindow window(sf::VideoMode({1200, 720}), "GB-Debugger");
 
     ImGui::SFML::Init(window);
 
-
-    const ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
     io.Fonts->AddFontFromMemoryTTF(__JetBrainsMono_Medium_ttf, __JetBrainsMono_Medium_ttf_len, 16.0f);
+
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
     ImGui::SFML::UpdateFontTexture();
 
     auto emulator = std::make_shared<Emulator>(argv[1]);
@@ -27,11 +30,11 @@ int main(int argc, char* argv[]) {
 
     sf::Clock deltaClock;
 
-    while (window.isOpen()) {
+    while (window.isOpen()){
         sf::Event event{};
         while (window.pollEvent(event))
         {
-            ImGui::SFML::ProcessEvent(event);
+            ImGui::SFML::ProcessEvent(window, event);
             if (event.type == sf::Event::Closed) {
                 window.close();
             }

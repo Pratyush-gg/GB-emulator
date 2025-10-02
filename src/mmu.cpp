@@ -1,5 +1,6 @@
 #include "../include/mmu.hpp"
 #include "../include/gb_utils.hpp"
+#include "../include/ppu.hpp"
 
 #include <iostream>
 
@@ -145,6 +146,11 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     if (address == 0xFFFF) {
         this->interrupt->IE = value;
         return;
+    }
+
+    if (address == 0xFF46) {
+        PicturePU::dma_start(value);
+        // TODO
     }
 
     // Invalid address fallback
