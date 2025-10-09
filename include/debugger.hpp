@@ -4,6 +4,8 @@
 
 #pragma once
 
+static constexpr int scale = 2.0;
+
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -23,9 +25,10 @@ struct debuggerInst {
 extern debuggerInst instr_table[256];
 
 class Debugger {
+    std::string romFilename;
     std::shared_ptr<Emulator> emu;
     DebugContext debugContext;
-    unsigned disassembler_num_lines = 30;
+    unsigned disassembler_num_lines = 100;
 
     uint16_t hexview_curr_mem = 0x100;
     unsigned hexview_num_lines = 30;
@@ -50,7 +53,7 @@ class Debugger {
     bool running = false;
     bool checkStack = false;
 
-    unsigned instPerFrame = (1 << 16);
+    uint64_t instPerFrame = (1ull << 20);
 
     void stepIn();
     void stepOut();
@@ -58,6 +61,7 @@ class Debugger {
     void runContinue();
     void toggleBreakpoint(uint16_t address);
     void inLoop();
+    void reload_rom();
     void handle_command(char *commandBuffer);
 
     char prevCommandBuffer[256] = "s\0";
@@ -69,8 +73,9 @@ class Debugger {
     std::vector<sf::Uint8> tile_pixel_buffer;
 
 public:
-    explicit Debugger(const std::shared_ptr<Emulator>& emu) :
-        emu(emu) ,
+    explicit Debugger(const std::string& filename) :
+        romFilename(filename),
+        emu(std::make_shared<Emulator>(filename)) ,
         debugContext(emu->getDebugContext()) {
         std::cout << "Debugger created" << std::endl;
 

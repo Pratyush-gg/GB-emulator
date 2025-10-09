@@ -149,7 +149,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     if (address == 0xFF46) {
-        PicturePU::dma_start(value);
+        ppu->dma_start(value);
         // TODO
     }
 

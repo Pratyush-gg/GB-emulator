@@ -1,5 +1,6 @@
 #include "../include/emu.hpp"
 #include "../include/mmu.hpp"
+#include "../include/ppu.hpp"
 
 #include <iostream>
 #include <memory>
@@ -16,6 +17,9 @@ Emulator::Emulator(const std::string& rom_filename):
     timer = std::make_shared<Timer>(interrupts);
     bus = std::make_shared<MMU>(cart, ppu, timer, interrupts);
     cpu = std::make_shared<CPU>(bus, interrupts);
+
+    std::weak_ptr<MMU> PPU_MMU_Pointer(bus);
+    ppu->setMMU(PPU_MMU_Pointer);
 }
 
 void Emulator::run() {

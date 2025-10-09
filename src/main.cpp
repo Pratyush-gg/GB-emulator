@@ -16,17 +16,16 @@ int main(int argc, char* argv[]) {
 
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
-    io.Fonts->AddFontFromMemoryTTF(__JetBrainsMono_Medium_ttf, __JetBrainsMono_Medium_ttf_len, 16.0f);
+    io.Fonts->AddFontFromMemoryTTF(__JetBrainsMono_Medium_ttf, __JetBrainsMono_Medium_ttf_len, 18.0f);
 
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     ImGui::SFML::UpdateFontTexture();
 
-    auto emulator = std::make_shared<Emulator>(argv[1]);
     init_instructions();
 
-    Debugger debugger(emulator);
+    Debugger debugger(argv[1]);
 
     sf::Clock deltaClock;
 

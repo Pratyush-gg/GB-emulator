@@ -1,11 +1,11 @@
 #pragma once
 #include "cart.hpp"
-#include "ppu.hpp"
 #include "timer.hpp"
 
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <array>
 
 // Memory Map
 // 0000	3FFF	16 KiB ROM bank 00	From cartridge, usually a fixed bank
@@ -24,6 +24,8 @@
 // TODO: Implement all this one by one
 // class AudioPU;
 // class JoyPad;
+
+class PicturePU;
 
 class MMU {
 private:

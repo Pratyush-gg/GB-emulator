@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdint>
 #include <stdexcept>
+#include "../include/mmu.hpp"
 
 uint8_t PicturePU::read_vram(const uint16_t address) const {
 	if (address < VRAM_OFFSET || address >= VRAM_OFFSET + VRAM_SIZE)
@@ -84,7 +85,9 @@ void PicturePU::dma_tick() {
 		return;
 	}
 
-	write_oam(dma.byte, bus->read_data((dma.value * 0x100) + dma.byte));
+    if (std::shared_ptr<MMU> tempBus = bus.lock()) {
+        write_oam(dma.byte, tempBus->read_data((dma.value * 0x100) + dma.byte));
+    }
 	dma.byte++;
 
 	dma.active = dma.byte < 0xA0;

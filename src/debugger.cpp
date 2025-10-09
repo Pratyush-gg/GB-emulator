@@ -103,9 +103,10 @@ void Debugger::render_hex_view() const {
     const ImVec2 main_pos = viewport->WorkPos;
     const ImVec2 main_size = viewport->WorkSize;
 
-    const float prompt_height = ImGui::GetTextLineHeightWithSpacing() + 20;
+    const float promptPadding = 20.0f;
+    const float prompt_height = ImGui::GetTextLineHeightWithSpacing() + promptPadding;
     const float panelHeight = main_size.y - 200.0f - prompt_height;
-    constexpr float panelWidth = 320.0f;
+    constexpr float panelWidth = 340.0f;
 
     const auto panel_pos = ImVec2(main_pos.x + main_size.x - panelWidth, main_pos.y + 200.0f);
     const auto panel_size = ImVec2(panelWidth, panelHeight);
@@ -144,7 +145,7 @@ void Debugger::render_registers_panel() const {
     const ImVec2 main_size = viewport->WorkSize;
 
     constexpr float panelHeight = 200.0f;
-    constexpr float panelWidth = 320.0f;
+    constexpr float panelWidth = 340.0f;
 
     const auto panel_pos = ImVec2(main_pos.x + main_size.x - panelWidth, main_pos.y);
     constexpr auto panel_size = ImVec2(panelWidth, panelHeight);
@@ -162,30 +163,73 @@ void Debugger::render_registers_panel() const {
         ImGui::TextColored(ImVec4(1, 0, 0, 1), formatString.c_str(), debugContext.regs.get().read_register(value));
     };
 
+    auto renderMem = [&](const std::string& label, const uint16_t address) {
+        ImGui::TableNextColumn();
+        ImGui::Text("%s:", label.c_str());
+        ImGui::SameLine(90.0f);
+        static const std::string formatString = "0x%02X";
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), formatString.c_str(),
+                           debugContext.mmu.get().read_data(address));
+    };
+
+    static constexpr uint16_t LCDC_addr = 0xFF40;
+    static constexpr uint16_t STAT_addr = 0xFF41;
+    static constexpr uint16_t LY_addr   = 0xFF44;
+    static constexpr uint16_t IE_addr   = 0xFFFF;
+    static constexpr uint16_t IF_addr   = 0xFF0F;
+
+    constexpr auto flagSetColor = ImVec4(1, 0, 1, 1);
+    constexpr auto flagUnsetColor = ImVec4(0.7, 0.7, 0.7, 1);
+
+    const auto zColor = (debugContext.regs.get().flags.z()) ? flagSetColor : flagUnsetColor;
+    const auto nColor = (debugContext.regs.get().flags.n()) ? flagSetColor : flagUnsetColor;
+    const auto hColor = (debugContext.regs.get().flags.h()) ? flagSetColor : flagUnsetColor;
+    const auto cColor = (debugContext.regs.get().flags.c()) ? flagSetColor : flagUnsetColor;
+
     ImGui::Begin("Registers", nullptr, window_flags);
-    if (ImGui::BeginTable("RegSplit", 2, ImGuiTableFlags_None)) {
+        if (ImGui::BeginTable("RegSplit", 3, ImGuiTableFlags_None)) {
 
-        renderReg("A", REG_TYPE::RT_A);
-        renderReg("B", REG_TYPE::RT_B);
-        renderReg("C", REG_TYPE::RT_C);
-        renderReg("D", REG_TYPE::RT_D);
+            ImGui::TableSetupColumn("CPU Reg", ImGuiTableColumnFlags_WidthFixed, 145.0f);
+            ImGui::TableSetupColumn("Mem Reb", ImGuiTableColumnFlags_WidthFixed, 145.0f);
+            ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_WidthFixed, 60.0f);
 
+            constexpr float flagPadding = 10.0f;
+            renderReg("AF", REG_TYPE::RT_AF);
+            renderMem("LCDC", LCDC_addr);
 
-        renderReg("E", REG_TYPE::RT_E);
-        renderReg("F", REG_TYPE::RT_F);
-        renderReg("H", REG_TYPE::RT_H);
-        renderReg("L", REG_TYPE::RT_L);
+            ImGui::TableNextColumn();
+            ImGui::SameLine(flagPadding);
+            ImGui::TextColored(zColor, "Z");
 
-        renderReg("AF", REG_TYPE::RT_AF);
-        renderReg("BC", REG_TYPE::RT_BC);
-        renderReg("SP", REG_TYPE::RT_SP);
+            renderReg("BC", REG_TYPE::RT_BC);
+            renderMem("STAT", STAT_addr);
 
-        renderReg("DE", REG_TYPE::RT_DE);
-        renderReg("HL", REG_TYPE::RT_HL);
-        renderReg("PC", REG_TYPE::RT_PC);
+            ImGui::TableNextColumn();
+            ImGui::SameLine(flagPadding);
+            ImGui::TextColored(nColor, "N");
 
+            renderReg("DE", REG_TYPE::RT_DE);
+            renderMem("LY", LY_addr);
+
+            ImGui::TableNextColumn();
+            ImGui::SameLine(flagPadding);
+            ImGui::TextColored(hColor, "H");
+
+            renderReg("HL", REG_TYPE::RT_HL);
+            renderMem("TEMP", 0x0);
+
+            ImGui::TableNextColumn();
+            ImGui::SameLine(flagPadding);
+            ImGui::TextColored(cColor, "C");
+
+            renderReg("SP", REG_TYPE::RT_SP);
+            renderMem("IE", IE_addr);
+
+            ImGui::TableNextColumn();
+            renderReg("PC", REG_TYPE::RT_PC);
+            renderMem("IF", IF_addr);
+        }
         ImGui::EndTable();
-    }
     ImGui::End();
 }
 
@@ -194,6 +238,7 @@ void Debugger::handle_command(char* commandBuffer) {
     std::string command(commandBuffer);
 
     const size_t first = command.find_first_not_of(" \t\n\r");
+    // ReSharper disable once CppTooWideScopeInitStatement
     const size_t last = command.find_last_not_of(" \t\n\r");
     if (std::string::npos == first || std::string::npos == last) {
         command = prevCommandBuffer;
@@ -215,12 +260,15 @@ void Debugger::handle_command(char* commandBuffer) {
         uint16_t addr; ss >> std::hex >> addr;
         this->toggleBreakpoint(addr);
     }
+    else if (token == "r") {
+        this->reload_rom();
+    }
     else if (token == "h") {
         uint16_t addr; ss >> std::hex >> addr;
         this->hexview_curr_mem = addr;
     }
     else if (token == "speed") {
-        unsigned speed; ss >> speed;
+        uint64_t speed; ss >> speed;
         std::cout << speed << std::endl;
         this->instPerFrame = speed;
     }
@@ -265,7 +313,7 @@ void Debugger::render_disassembly_panel() const {
     const ImVec2 main_pos = viewport->WorkPos;
     const ImVec2 main_size = viewport->WorkSize;
 
-    constexpr float panel_width = 350.0f;
+    constexpr float panel_width = 360.0f;
     const float prompt_height = ImGui::GetTextLineHeightWithSpacing() + 20;
 
     const auto panel_pos = ImVec2(main_pos.x + 8.0f, main_pos.y + 5.0f);
@@ -363,13 +411,6 @@ void Debugger::stepOver() {
 }
 
 void Debugger::runContinue() {
-    // do {
-    //     emu->run_one();
-    //     if (!return_points.empty() && getCurrentInstruction() == return_points.top()) return_points.pop();
-    // } while (!breakpoints.count(this->getCurrentInstruction()));
-
-    // if (!return_points.empty() && getCurrentInstruction() == return_points.top()) return_points.pop();
-
     emu->run_one();
     running = true;
 }
@@ -396,4 +437,9 @@ void Debugger::inLoop() {
         }
         emu->run_one();
     }
+}
+
+void Debugger::reload_rom() {
+    this->emu = std::make_shared<Emulator>(romFilename);
+    this->debugContext = emu->getDebugContext();
 }

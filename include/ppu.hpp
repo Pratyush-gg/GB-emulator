@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
 #include <array>
+#include <memory>
+
+#include "mmu.hpp"
 
 enum LCD_MODE {
 	MODE_VBLANK,
@@ -76,8 +79,16 @@ class PicturePU {
 	uint8_t WY  = 0;
 	uint8_t WX  = 0;
 
+    std::weak_ptr<MMU> bus;
+
+    // PicturePU(const std::weak_ptr<MMU> &_bus) : bus(_bus) {}
+
 public:
-	[[nodiscard]] uint8_t read_vram(uint16_t address) const;
+    void setMMU(const std::weak_ptr<MMU> &_bus) {
+        bus = _bus;
+    }
+
+    [[nodiscard]] uint8_t read_vram(uint16_t address) const;
 	void write_vram(uint16_t address, uint8_t value);
 
 	[[nodiscard]] uint8_t read_oam(uint16_t address) const;
