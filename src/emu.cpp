@@ -38,6 +38,7 @@ void Emulator::updateState() {
     // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     const int increment_cycles = cpu->cpu_step();
     timer->tick(increment_cycles);
+    ppu->dma_tick(increment_cycles/4);
     if (!increment_cycles) {
         std::cout << "CPU stopped." << std::endl;
         this->running = false;

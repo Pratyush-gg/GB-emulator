@@ -8,7 +8,56 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 
+// The constructor implementation is moved from the header
+Debugger::Debugger(const std::string& filename) :
+    romFilename(filename),
+    emu(std::make_shared<Emulator>(filename)),
+    debugContext(emu->getDebugContext())
+{
+    std::cout << "Debugger created" << std::endl;
+
+    tile_texture.create(TILE_DATA_WIDTH_PX, TILE_DATA_HEIGHT_PX);
+    tile_pixel_buffer.resize(TILE_DATA_WIDTH_PX * TILE_DATA_HEIGHT_PX * 4);
+
+    // Start the emulator thread right after setup
+    emu_thread = std::thread(&Debugger::emulator_thread_loop, this);
+}
+
+// The new destructor to safely stop the thread
+Debugger::~Debugger() {
+    shutdown_thread = true;
+    if (emu_thread.joinable()) {
+        emu_thread.join();
+    }
+}
+
+void Debugger::emulator_thread_loop() {
+    while (!shutdown_thread) {
+        if (emu_running) {
+            // Lock once before running a batch of instructions.
+            std::lock_guard<std::mutex> lock(emu_mutex);
+
+            // A "timeslice" or batch size. You can tune this number.
+            // It's the number of instructions to run before releasing the lock.
+            const int instructions_per_slice = 1000;
+
+            for (int i = 0; i < instructions_per_slice; ++i) {
+                if (breakpoints.count(this->getCurrentInstruction())) {
+                    emu_running = false;
+                    break; // Stop this batch if we hit a breakpoint
+                }
+                emu->run_one();
+            }
+        }
+
+        // Briefly pause to allow the UI thread a chance to acquire the lock.
+        // This prevents the emulator thread from hogging the CPU.
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+}
+
 void Debugger::render() {
+    std::lock_guard<std::mutex> lock(emu_mutex);
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
     ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -87,7 +136,7 @@ void Debugger::render_tile_data_panel() {
             }
         }
     }
-    
+
     tile_texture.update(tile_pixel_buffer.data());
 
     const float available_width = ImGui::GetContentRegionAvail().x;
@@ -98,7 +147,7 @@ void Debugger::render_tile_data_panel() {
     ImGui::End();
 }
 
-void Debugger::render_hex_view() const {
+void Debugger::render_hex_view() {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     const ImVec2 main_pos = viewport->WorkPos;
     const ImVec2 main_size = viewport->WorkSize;
@@ -139,7 +188,7 @@ void Debugger::render_hex_view() const {
     ImGui::End();
 }
 
-void Debugger::render_registers_panel() const {
+void Debugger::render_registers_panel() {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     const ImVec2 main_pos = viewport->WorkPos;
     const ImVec2 main_size = viewport->WorkSize;
@@ -295,19 +344,24 @@ void Debugger::render_command_prompt() {
     ImGui::Begin("Command Prompt", nullptr, window_flags);
     char commandBuffer[256] = "";
     ImGui::PushItemWidth(-1.0f);
-    if (running) {
-        inLoop();
+    if (emu_running) {
+        if (ImGui::Button("Break", ImVec2(-1.0f, 0.0f))) {
+            emu_running = false;
+        }
+    } else {
+        // Otherwise, show the command input prompt
+        static char commandBuffer[256] = ""; // Make buffer static
+        if (ImGui::InputTextWithHint("##Prompt", "Enter command...", commandBuffer, sizeof(commandBuffer),
+                ImGuiInputTextFlags_EnterReturnsTrue)) {
+            handle_command(commandBuffer);
+                }
+        ImGui::SetKeyboardFocusHere(-1);
     }
-    else if (ImGui::InputTextWithHint("##Prompt", "Enter command...", commandBuffer, sizeof(commandBuffer),
-            ImGuiInputTextFlags_EnterReturnsTrue)) {
-        handle_command(commandBuffer);
-    }
-    ImGui::SetKeyboardFocusHere(-1);
     ImGui::PopItemWidth();
     ImGui::End();
 }
 
-void Debugger::render_disassembly_panel() const {
+void Debugger::render_disassembly_panel() {
 
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     const ImVec2 main_pos = viewport->WorkPos;
@@ -376,9 +430,8 @@ void Debugger::render_disassembly_panel() const {
 }
 
 void Debugger::stepIn() {
-    return_points.push(getNextInstruction());
+    emu_running = false;
     emu->run_one();
-    if (getCurrentInstruction() == return_points.top()) return_points.pop();
 }
 
 void Debugger::stepOut() {
@@ -387,7 +440,7 @@ void Debugger::stepOut() {
     }
     else {
         emu->run_one();
-        running = true;
+        emu_running = true;
         checkStack = true;
         // do {
         //     emu->run_one();
@@ -411,8 +464,7 @@ void Debugger::stepOver() {
 }
 
 void Debugger::runContinue() {
-    emu->run_one();
-    running = true;
+    emu_running = true;
 }
 
 void Debugger::toggleBreakpoint(const uint16_t address) {

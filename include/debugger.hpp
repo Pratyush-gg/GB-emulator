@@ -12,6 +12,9 @@ static constexpr int scale = 2.0;
 #include <stack>
 #include <unordered_set>
 #include <vector>
+#include <thread>
+#include <mutex>
+#include <atomic>
 #include <SFML/Graphics/Texture.hpp>
 
 #include "emu.hpp"
@@ -72,22 +75,24 @@ class Debugger {
     sf::Texture tile_texture;
     std::vector<sf::Uint8> tile_pixel_buffer;
 
-public:
-    explicit Debugger(const std::string& filename) :
-        romFilename(filename),
-        emu(std::make_shared<Emulator>(filename)) ,
-        debugContext(emu->getDebugContext()) {
-        std::cout << "Debugger created" << std::endl;
+private:
+    void emulator_thread_loop(); // The main function for our new thread
 
-        tile_texture.create(TILE_DATA_WIDTH_PX, TILE_DATA_HEIGHT_PX);
-        tile_pixel_buffer.resize(TILE_DATA_WIDTH_PX * TILE_DATA_HEIGHT_PX * 4);
-    }
+    std::thread emu_thread;
+    std::mutex emu_mutex; // Protects access to the emulator state and debugContext
+
+    std::atomic<bool> emu_running = false; // Controls if the emulator is running or paused
+    std::atomic<bool> shutdown_thread = false;    // Signals the thread to exit cleanly
+
+public:
+    explicit Debugger(const std::string& filename);
+    ~Debugger();
 
     void render();
-    void render_hex_view() const;
-    void render_registers_panel() const;
+    void render_hex_view();
+    void render_registers_panel();
     void render_command_prompt();
-    void render_disassembly_panel() const;
+    void render_disassembly_panel();
     void render_tile_data_panel();
 };
 

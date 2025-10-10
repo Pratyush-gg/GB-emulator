@@ -100,6 +100,6 @@ public:
 	void tick(unsigned cycles);
 
 	void dma_start(uint8_t value);
-	void dma_tick();
+	void dma_tick(uint8_t cycles);
 	bool dma_transferring();
 };

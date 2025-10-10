@@ -4,17 +4,19 @@
 
 #include <iostream>
 
+uint8_t ly = 0;
+
 uint8_t MMU::read_data(const uint16_t address) const {
     if (address < CART_SEG1_OFFSET + CART_SEG1_SIZE) {
         return cartridge->cart_read(address);
     }
-    if (address < VRAM_OFFSET + VRAM_SIZE) {
+    else if (address < VRAM_OFFSET + VRAM_SIZE) {
         return ppu->read_vram(address);
     }
-    if (address < CART_SEG2_OFFSET + CART_SEG2_SIZE) {
+    else if (address < CART_SEG2_OFFSET + CART_SEG2_SIZE) {
         return cartridge->cart_read(address);
     }
-    if (address < WRAM_OFFSET + WRAM_SIZE) {
+    else if (address < WRAM_OFFSET + WRAM_SIZE) {
         const uint16_t offset = address - WRAM_OFFSET;
         if (offset >= WRAM_SIZE) {
             std::cerr << "WRAM read out of bounds: " << std::hex << address << std::endl;
@@ -22,21 +24,25 @@ uint8_t MMU::read_data(const uint16_t address) const {
         }
         return wram[offset];
     }
-    if (address < ERAM_OFFSET + ERAM_SIZE) {
-        const uint16_t offset = address - ERAM_OFFSET;
-        if (offset >= ERAM_SIZE) {
-            std::cerr << "WRAM read out of bounds: " << std::hex << address << std::endl;
-            return 0xFF; // or throw an exception
-        }
-        return wram[offset];
+    else if (address < ERAM_OFFSET + ERAM_SIZE) {
+        // const uint16_t offset = address - ERAM_OFFSET;
+        // if (offset >= ERAM_SIZE) {
+        //     std::cerr << "WRAM read out of bounds: " << std::hex << address << std::endl;
+        //     return 0xFF; // or throw an exception
+        // }
+        // return wram[offset];
+        return 0;
     }
-    if (address < OAM_OFFSET + OAM_SIZE) {
+    else if (address < OAM_OFFSET + OAM_SIZE) {
+        if (ppu->dma_transferring()) {
+            return 0xFF;
+        }
         return ppu->read_oam(address);
     }
-    if (address < FORBIDDEN_OFFSET + FORBIDDEN_SIZE) {
-        return 0xFF;
+    else if (address < FORBIDDEN_OFFSET + FORBIDDEN_SIZE) {
+        return 0;
     }
-    if (address < 0xFF80) {
+    else if (address < 0xFF80) {
         if (address == 0xFF01) return serial_data[0];
         if (address == 0xFF02) return serial_data[1];
         if (address == 0xFF0F) return this->interrupt->IF;
@@ -44,8 +50,9 @@ uint8_t MMU::read_data(const uint16_t address) const {
         if (address >= TIMER_OFFSET && address <= TIMER_END)
             return timer->readAddr(address);
 
-        if (address >= PPO_IO_OFFSET && address <= PPO_IO_END)
-            return ppu->io_read(address);
+        if (address == 0xFF44) {
+            return ly++;
+        }
         // TODO : add joypad and APU.
     }
     if (address < HRAM_OFFSET + HRAM_SIZE) {
@@ -64,17 +71,17 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         return;
     }
 
-    if (address >= VRAM_OFFSET && address < VRAM_OFFSET + VRAM_SIZE) {
+    else if (address >= VRAM_OFFSET && address < VRAM_OFFSET + VRAM_SIZE) {
         ppu->write_vram(address, value);
         return;
     }
 
-    if (address >= CART_SEG2_OFFSET && address < CART_SEG2_OFFSET + CART_SEG2_SIZE) {
+    else if (address >= CART_SEG2_OFFSET && address < CART_SEG2_OFFSET + CART_SEG2_SIZE) {
         not_implemented("cartridge write / MBC");
         return;
     }
 
-    if (address >= WRAM_OFFSET && address < WRAM_OFFSET + WRAM_SIZE) {
+    else if (address >= WRAM_OFFSET && address < WRAM_OFFSET + WRAM_SIZE) {
         const uint16_t offset = address - WRAM_OFFSET;
         if (offset >= WRAM_SIZE) {
             std::cerr << "WRAM write out of bounds: " << std::hex << address << std::endl;
@@ -84,27 +91,30 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         return;
     }
 
-    if (address >= ERAM_OFFSET && address < ERAM_OFFSET + ERAM_SIZE) {
-        const uint16_t offset = address - ERAM_OFFSET;
-        if (offset >= WRAM_SIZE) {
-            std::cerr << "Echo RAM write out of bounds: " << std::hex << address << std::endl;
-            return;
-        }
-        wram[offset] = value;
+    else if (address >= ERAM_OFFSET && address < ERAM_OFFSET + ERAM_SIZE) {
+        // const uint16_t offset = address - ERAM_OFFSET;
+        // if (offset >= WRAM_SIZE) {
+        //     std::cerr << "Echo RAM write out of bounds: " << std::hex << address << std::endl;
+        //     return;
+        // }
+        // wram[offset] = value;
         return;
     }
 
-    if (address >= OAM_OFFSET && address < OAM_OFFSET + OAM_SIZE) {
+    else if (address >= OAM_OFFSET && address < OAM_OFFSET + OAM_SIZE) {
+        if (ppu->dma_transferring()) {
+            return;
+        }
         ppu->write_oam(address, value);
         return;
     }
 
-    if (address >= 0xFEA0 && address < 0xFF00) {
+    else if (address >= 0xFEA0 && address < 0xFF00) {
         std::cerr << "Write to unusable memory: " << std::hex << address << std::endl;
         return;
     }
 
-    if (address >= 0xFF00 && address < 0xFF80) {
+    else if (address >= 0xFF00 && address < 0xFF80) {
         if (address == 0xFF01) {
             serial_data[0] = value;
             return;
@@ -119,21 +129,21 @@ void MMU::write_data(uint16_t address, uint8_t value) {
             return;
         }
 
+        if (address == 0xFF46) {
+            ppu->dma_start(value);
+            return;
+        }
+
         if (address >= TIMER_OFFSET && address <= TIMER_END) {
             timer->writeAddr(address, value);
             return;
         }
 
-        if (address >= PPO_IO_OFFSET && address <= PPO_IO_END) {
-            ppu->io_write(address, value);
-            return;
-        }
-
         // TODO: Add Joypad (0xFF00) and APU (0xFF10–0xFF3F)
-        return;
+        std::cerr << "Write to unusable memory: " << std::hex << address << std::endl;
     }
 
-    if (address >= HRAM_OFFSET && address < HRAM_OFFSET + HRAM_SIZE) {
+    else if (address >= HRAM_OFFSET && address < HRAM_OFFSET + HRAM_SIZE) {
         const uint16_t offset = address - HRAM_OFFSET;
         if (offset >= HRAM_SIZE) {
             std::cerr << "HRAM write out of bounds: " << std::hex << address << std::endl;
@@ -143,14 +153,9 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         return;
     }
 
-    if (address == 0xFFFF) {
+    else if (address == 0xFFFF) {
         this->interrupt->IE = value;
         return;
-    }
-
-    if (address == 0xFF46) {
-        ppu->dma_start(value);
-        // TODO
     }
 
     // Invalid address fallback

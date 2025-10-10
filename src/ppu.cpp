@@ -77,23 +77,26 @@ void PicturePU::dma_start(const uint8_t value) {
 	dma.value = value;
 }
 
-void PicturePU::dma_tick() {
-	if (!dma.active) return;
+void PicturePU::dma_tick(uint8_t cycles) {
+	while (cycles --) {
+		if (!dma.active) return;
 
-	if (dma.start_delay > 0) {
-		dma.start_delay--;
-		return;
-	}
+		if (dma.start_delay > 0) {
+			dma.start_delay--;
+			return;
+		}
 
-    if (std::shared_ptr<MMU> tempBus = bus.lock()) {
-        write_oam(dma.byte, tempBus->read_data((dma.value * 0x100) + dma.byte));
-    }
-	dma.byte++;
+		if (std::shared_ptr<MMU> tempBus = bus.lock()) {
+			write_oam(dma.byte, tempBus->read_data((dma.value * 0x100) + dma.byte));
+		}
+		dma.byte++;
 
-	dma.active = dma.byte < 0xA0;
+		dma.active = dma.byte < 0xA0;
 
-	if (!dma.active) {
-		std::cout << "DMA transfer complete" << std::endl;
+		if (!dma.active) {
+			// std::cout << "DMA done!\n" << std::endl;
+			_sleep(2);
+		}
 	}
 }
 
