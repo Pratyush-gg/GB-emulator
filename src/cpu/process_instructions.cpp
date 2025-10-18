@@ -253,62 +253,52 @@ int CPU::process_DEC() {
 }
 
 int CPU::process_ADD() {
-    if (current_instruction.reg1 == REG_TYPE::RT_SP) {
-        const auto offset = static_cast<int8_t>(fetch_data);
+    const REG_TYPE reg1 = current_instruction.reg1.value();
 
-        const uint8_t sp_val = this->regs.SP;
+    if (reg1 == REG_TYPE::RT_SP) {
+        const auto offset = static_cast<int8_t>(fetch_data & 0xFF);
+        const uint16_t sp_val = regs.read_register(REG_TYPE::RT_SP);
+        const uint16_t result = sp_val + offset;
 
-        this->regs.SP = sp_val + offset;
-
-        const uint8_t low_byte_sp = sp_val & 0xFF;
-        const uint8_t unsigned_offset = fetch_data;
-
-        const bool h_flag = ((low_byte_sp & 0xF) + (unsigned_offset & 0xF)) > 0xF;
-        const bool c_flag = (static_cast<uint16_t>(low_byte_sp) +
-                             static_cast<uint16_t>(unsigned_offset)) > 0xFF;
-
-        regs.flags.set_h(h_flag);
-        regs.flags.set_c(c_flag);
         regs.flags.set_z(false);
         regs.flags.set_n(false);
+        regs.flags.set_h(((sp_val & 0x0F) + (fetch_data & 0x0F)) > 0x0F);
+        regs.flags.set_c(((sp_val & 0xFF) + (fetch_data & 0xFF)) > 0xFF);
 
-        return 16;
-    }
-    int cycles = 0;
-    const uint32_t values = regs.read_register(current_instruction.reg1.value()) + fetch_data;
-
-    const bool flag1 = current_instruction.reg1 >= REG_TYPE::RT_AF;
-
-    if (flag1) {
-        cycles += 4;
+        regs.set_register(REG_TYPE::RT_SP, result);
+        return 12;
     }
 
-    bool z_flag = (values & 0xFF) == 0;
-    bool h_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xF) + (fetch_data & 0xF)) >= 0x10;
-    bool c_flag = ((int)(regs.read_register(current_instruction.reg1.value()) & 0xFF) + (int)(fetch_data & 0xFF)) >= 0x100;
-    bool z1 = true;
+    if (reg1 >= REG_TYPE::RT_AF) {
+        const uint16_t val1 = regs.read_register(reg1);
+        const uint16_t val2 = fetch_data;
+        const uint32_t result = val1 + val2;
 
-    if (flag1) {
-        z1 = false;
-        h_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xFFF) + (fetch_data & 0xFFF)) >= 0x1000;
-        c_flag = (uint32_t(regs.read_register(current_instruction.reg1.value())) + uint32_t(fetch_data)) >= 0x10000;
-    }
-    if (current_instruction.reg1 == REG_TYPE::RT_SP) {
-        z_flag = false;
-        h_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xF) + (fetch_data & 0xF)) >= 0x10;
-        c_flag = ((regs.read_register(current_instruction.reg1.value()) & 0xFF) + (int)(fetch_data & 0xFF)) >= 0x100;
+        regs.flags.set_n(false);
+        regs.flags.set_h((val1 & 0x0FFF) + (val2 & 0x0FFF) > 0x0FFF);
+        regs.flags.set_c(result > 0xFFFF);
+
+        regs.set_register(reg1, static_cast<uint16_t>(result));
+        return 4;
     }
 
-    regs.set_register(current_instruction.reg1.value(), values & 0xFFFF);
-    if (z1) {
-        regs.flags.set_z(z_flag);
-    }
-    regs.flags.set_h(h_flag);
-    regs.flags.set_c(c_flag);
-    regs.flags.set_n(false);
+    if (reg1 == REG_TYPE::RT_A) {
+        const uint8_t val1 = regs.read_register(REG_TYPE::RT_A);
+        const uint8_t val2 = fetch_data & 0xFF;
+        const uint16_t result = val1 + val2;
 
-    return cycles;
+        regs.flags.set_z((result & 0xFF) == 0);
+        regs.flags.set_n(false);
+        regs.flags.set_h((val1 & 0x0F) + (val2 & 0x0F) > 0x0F);
+        regs.flags.set_c(result > 0xFF);
+
+        regs.set_register(REG_TYPE::RT_A, static_cast<uint8_t>(result));
+        return 0;
+    }
+
+    return 0;
 }
+
 
 int CPU::process_SUB() {
     uint16_t values = regs.read_register(current_instruction.reg1.value()) - fetch_data;

@@ -14,7 +14,7 @@ enum LCD_MODE {
 
 class PicturePU {
 	static constexpr unsigned SCREEN_WIDTH = 160;
-	static constexpr unsigned SCREEN_HEIGHT = 144;;
+	static constexpr unsigned SCREEN_HEIGHT = 144;
 
 	static constexpr uint16_t VRAM_OFFSET = 0x8000;
 	static constexpr uint16_t VRAM_SIZE = 0x2000; // 8 KiB
@@ -79,6 +79,12 @@ class PicturePU {
 	uint8_t WY  = 0;
 	uint8_t WX  = 0;
 
+	uint32_t bg_colors[4] = {};
+	uint32_t sp1_colors[4] = {};
+	uint32_t sp2_colors[4] = {};
+
+	uint32_t default_colors[4] = {0xFF9BBC0F, 0xFF8BAC0F, 0xFF306230, 0xFF0F380F};
+
     std::weak_ptr<MMU> bus;
 
     // PicturePU(const std::weak_ptr<MMU> &_bus) : bus(_bus) {}
@@ -102,4 +108,23 @@ public:
 	void dma_start(uint8_t value);
 	void dma_tick(uint8_t cycles);
 	bool dma_transferring();
+
+	bool LCDC_BGW_enabled();
+	uint16_t LCDC_BGW_data_area();
+	uint16_t LCDC_BG_map_area();
+	bool LCDC_OBJ_enabled();
+	uint8_t LCDC_OBJ_height();
+	bool LCDC_WINDOW_enabled();
+	uint8_t LCDC_WINDOW_map_area();
+	bool LCDC_LCD_enabled();
+
+	LCD_MODE LCDS_mode();
+	void LCDS_mode_set(LCD_MODE mode);
+	bool LCDS_LYC();
+	void LCDS_LYC_set(bool flag);
+	bool LCDS_STAT_int(uint8_t value);
+
+	void update_palettes(uint8_t value, uint8_t pal);
+	uint8_t LCD_read(uint16_t address);
+	void LCD_write(uint16_t address, uint8_t value);
 };
