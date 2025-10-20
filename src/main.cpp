@@ -6,6 +6,8 @@
 
 #include "SFML/Graphics.hpp"
 #include <iostream>
+
+#include "ppu.hpp"
 #include "../fonts/ttf/JetBrainsMono-Medium.h"
 
 int main(int argc, char* argv[]) {
@@ -28,6 +30,8 @@ int main(int argc, char* argv[]) {
     Debugger debugger(argv[1]);
 
     sf::Clock deltaClock;
+
+    uint32_t prev_frame = 0;
 
     while (window.isOpen()){
         sf::Event event{};

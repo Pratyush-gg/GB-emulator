@@ -64,7 +64,7 @@ private:
     static constexpr uint16_t TIMER_END = 0xFF07;
 
     static constexpr uint16_t PPO_IO_OFFSET = 0xFF40;
-    static constexpr uint16_t PPO_IO_END = 0xFF48;
+    static constexpr uint16_t PPO_IO_END = 0xFF4B;
 
 	std::array<uint8_t, WRAM_SIZE> wram;
 	std::array<uint8_t, HRAM_SIZE> hram;

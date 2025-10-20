@@ -38,5 +38,7 @@ public:
     void run();
     void run_one();
 
+    uint32_t getCurrentFrame() const;
+
     DebugContext getDebugContext() const;
 };

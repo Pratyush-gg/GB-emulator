@@ -5,6 +5,8 @@
 
 #include "mmu.hpp"
 
+class InterruptHandler;
+
 enum LCD_MODE {
 	MODE_VBLANK,
 	MODE_HBLANK,
@@ -12,9 +14,21 @@ enum LCD_MODE {
 	MODE_XFER,
 };
 
+enum STAT_SOURCES {
+	SS_HBLANK = (1 << 3),
+	SS_VBLANK = (1 << 4),
+	SS_OAM = (1 << 5),
+	SS_LYC = (1 << 6),
+};
+
 class PicturePU {
+
+	std::shared_ptr<InterruptHandler> interruptHandler;
+
 	static constexpr unsigned SCREEN_WIDTH = 160;
 	static constexpr unsigned SCREEN_HEIGHT = 144;
+	static constexpr unsigned LINES_PER_FRAME = 154;
+	static constexpr unsigned TICKS_PER_LINE = 456;
 
 	static constexpr uint16_t VRAM_OFFSET = 0x8000;
 	static constexpr uint16_t VRAM_SIZE = 0x2000; // 8 KiB
@@ -27,6 +41,9 @@ class PicturePU {
 	std::array<uint8_t, VRAM_SIZE> vram = {};
 	std::array<uint8_t, OAM_SIZE> oam = {};
 
+	uint32_t line_ticks = 0;
+	std::array<uint32_t, SCREEN_WIDTH * SCREEN_HEIGHT> framebuffer = {0};
+
 	struct DMA {
 		bool active;
 		uint8_t byte;
@@ -35,8 +52,6 @@ class PicturePU {
 	};
 
 	DMA dma{};
-
-	std::array<uint8_t, SCREEN_WIDTH * SCREEN_HEIGHT * 4> framebuffer = {};
 
 	/*
 	0xFF40 – LCDC   (LCD Control)
@@ -90,6 +105,8 @@ class PicturePU {
     // PicturePU(const std::weak_ptr<MMU> &_bus) : bus(_bus) {}
 
 public:
+	PicturePU(std::shared_ptr<InterruptHandler> handler);
+
     void setMMU(const std::weak_ptr<MMU> &_bus) {
         bus = _bus;
     }
@@ -100,10 +117,17 @@ public:
 	[[nodiscard]] uint8_t read_oam(uint16_t address) const;
 	void write_oam(uint16_t address, uint8_t value);
 
-	[[nodiscard]] uint8_t io_read(uint16_t address) const;
-	void io_write(uint16_t address, uint8_t value);
+	// [[nodiscard]] uint8_t io_read(uint16_t address) const;
+	// void io_write(uint16_t address, uint8_t value);
 
-	void tick(unsigned cycles);
+	uint32_t current_frame = 0;
+
+	void increment_LY();
+	void ppu_tick(unsigned cycles);
+	void ppu_mode_oam();
+	void ppu_mode_xfer();
+	void ppu_mode_hblank();
+	void ppu_mode_vblank();
 
 	void dma_start(uint8_t value);
 	void dma_tick(uint8_t cycles);
@@ -115,7 +139,7 @@ public:
 	bool LCDC_OBJ_enabled();
 	uint8_t LCDC_OBJ_height();
 	bool LCDC_WINDOW_enabled();
-	uint8_t LCDC_WINDOW_map_area();
+	uint16_t LCDC_WINDOW_map_area();
 	bool LCDC_LCD_enabled();
 
 	LCD_MODE LCDS_mode();

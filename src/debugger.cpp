@@ -31,6 +31,10 @@ Debugger::~Debugger() {
     }
 }
 
+uint32_t Debugger::getCurrentFrame() const {
+    return emu->getCurrentFrame();
+}
+
 void Debugger::emulator_thread_loop() {
     while (!shutdown_thread) {
         if (emu_running) {

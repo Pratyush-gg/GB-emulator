@@ -4,8 +4,6 @@
 
 #include <iostream>
 
-uint8_t ly = 0;
-
 uint8_t MMU::read_data(const uint16_t address) const {
     if (address < CART_SEG1_OFFSET + CART_SEG1_SIZE) {
         return cartridge->cart_read(address);
@@ -50,9 +48,10 @@ uint8_t MMU::read_data(const uint16_t address) const {
         if (address >= TIMER_OFFSET && address <= TIMER_END)
             return timer->readAddr(address);
 
-        if (address == 0xFF44) {
-            return ly++;
+        if (address >= PPO_IO_OFFSET && address <= PPO_IO_END) {
+            return ppu->LCD_read(address);
         }
+
         // TODO : add joypad and APU.
     }
     if (address < HRAM_OFFSET + HRAM_SIZE) {
@@ -129,13 +128,13 @@ void MMU::write_data(uint16_t address, uint8_t value) {
             return;
         }
 
-        if (address == 0xFF46) {
-            ppu->dma_start(value);
+        if (address >= TIMER_OFFSET && address <= TIMER_END) {
+            timer->writeAddr(address, value);
             return;
         }
 
-        if (address >= TIMER_OFFSET && address <= TIMER_END) {
-            timer->writeAddr(address, value);
+        if (address >= PPO_IO_OFFSET && address <= PPO_IO_END) {
+            ppu->LCD_write(address, value);
             return;
         }
 

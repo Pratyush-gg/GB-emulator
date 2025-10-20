@@ -4,6 +4,17 @@
 #include <cstdint>
 #include <stdexcept>
 #include "../include/mmu.hpp"
+#include "../include/interrupt.hpp"
+#include "../include/gb_utils.hpp"
+
+static uint32_t target_frame_time = 1000 / 60;
+static long prev_frame_time = 0;
+static long start_timer = 0;
+static long frame_count = 0;
+
+PicturePU::PicturePU(std::shared_ptr<InterruptHandler> interruptHandler) {
+	this->interruptHandler = interruptHandler;
+}
 
 uint8_t PicturePU::read_vram(const uint16_t address) const {
 	if (address < VRAM_OFFSET || address >= VRAM_OFFSET + VRAM_SIZE)
@@ -29,47 +40,6 @@ void PicturePU::write_oam(const uint16_t address, const uint8_t value) {
 	oam[address - OAM_OFFSET] = value;
 }
 
-uint8_t PicturePU::io_read(const uint16_t address) const {
-	switch(address) {
-		case LCDC_ADDR	: return LCDC;
-		case STAT_ADDR	: return STAT;
-		case SCX_ADDR 	: return SCX;
-		case SCY_ADDR 	: return SCY;
-		case LY_ADDR  	: return LY;
-		case LYC_ADDR 	: return LYC;
-		case DMA_ADDR 	: return DMA;
-		case BGP_ADDR 	: return BGP;
-		case OBP0_ADDR	: return WY;
-		case OBP1_ADDR	: return OBP1;
-		case WY_ADDR  	: return WY;
-		case WX_ADDR  	: return WX;
-		default: return 0;
-	}
-}
-
-void PicturePU::io_write(const uint16_t address, const uint8_t value) {
-	 switch (address) {
-		case LCDC_ADDR	: LCDC = value; break;
-		case STAT_ADDR	: STAT = value; break;
-		case SCX_ADDR 	: SCX = value;	break;
-		case SCY_ADDR 	: SCY = value;	break;
-		case LY_ADDR  	: LY = value;	break;
-		case LYC_ADDR 	: LYC = value;  break;
-		case DMA_ADDR 	: DMA = value;  break;
-		case BGP_ADDR 	: BGP = value;  break;
-		case OBP0_ADDR	: OBP0 = value; break;
-		case OBP1_ADDR	: OBP1 = value;	break;
-		case WY_ADDR  	: WY = value;	break;
-		case WX_ADDR  	: WX = value;	break;
-		default:
-			std::cout << "Unimplemented I/oooo write at address: " << std::hex << address << std::dec << std::endl;
-	}
-}
-
-void PicturePU::tick(unsigned cycles) {
-	clock += cycles;
-}
-
 void PicturePU::dma_start(const uint8_t value) {
 	dma.active = true;
 	dma.byte = 0;
@@ -92,17 +62,106 @@ void PicturePU::dma_tick(uint8_t cycles) {
 		dma.byte++;
 
 		dma.active = dma.byte < 0xA0;
-
-		if (!dma.active) {
-			// std::cout << "DMA done!\n" << std::endl;
-			_sleep(2);
-		}
 	}
 }
 
 bool PicturePU::dma_transferring() {
 	return dma.active;
 }
+
+void PicturePU::increment_LY() {
+	LY++;
+	if (LY == LYC) {
+		LCDS_LYC_set(true);
+		if (LCDS_STAT_int(SS_LYC)) {
+			interruptHandler->interruptRequest(IT_LCD_STAT);
+		}
+	} else {
+		LCDS_LYC_set(false);
+	}
+}
+
+void PicturePU::ppu_mode_oam() {
+	if (line_ticks >= 80) {
+		LCDS_mode_set(MODE_XFER);
+	}
+}
+
+void PicturePU::ppu_mode_xfer() {
+	if (line_ticks >= 252) {
+		LCDS_mode_set(MODE_HBLANK);
+	}
+}
+
+void PicturePU::ppu_mode_vblank() {
+	if (line_ticks >= TICKS_PER_LINE) {
+		increment_LY();
+
+		if (LY >= LINES_PER_FRAME) {
+			LCDS_mode_set(MODE_OAM);
+			LY = 0;
+		}
+		line_ticks = 0;
+	}
+}
+
+void PicturePU::ppu_mode_hblank() {
+	if (line_ticks >= TICKS_PER_LINE) {
+		increment_LY();
+
+		if (LY >= SCREEN_HEIGHT) {
+			LCDS_mode_set(MODE_VBLANK);
+			interruptHandler->interruptRequest(IT_VBLANK);
+
+			if (LCDS_STAT_int(SS_VBLANK)) {
+				interruptHandler->interruptRequest(IT_LCD_STAT);
+			}
+			current_frame++;
+			uint32_t end = get_ticks();
+			uint32_t frame_time = end - prev_frame_time;
+
+			if (frame_time < target_frame_time) {
+				delay(target_frame_time - frame_time);
+			}
+
+			if (end - start_timer >= 1000) {
+				uint32_t fps = frame_count;
+				start_timer = end;
+				frame_count = 0;
+
+				std::cout << "FPS: " << fps << std::endl;
+			}
+
+			frame_count++;
+			prev_frame_time = get_ticks();
+		}
+		else {
+			LCDS_mode_set(MODE_OAM);
+		}
+		line_ticks = 0;
+	}
+}
+
+void PicturePU::ppu_tick(unsigned cycles) {
+	while (cycles --) {
+		line_ticks++;
+		switch (LCDS_mode()) {
+			case MODE_OAM:
+				ppu_mode_oam();
+				break;
+			case MODE_XFER:
+				ppu_mode_xfer();
+				break;
+			case MODE_HBLANK:
+				ppu_mode_hblank();
+				break;
+			case MODE_VBLANK:
+				ppu_mode_vblank();
+				break;
+		}
+	}
+}
+
 
 bool PicturePU::LCDC_BGW_enabled() {
 	return (LCDC & (1 << 0)) != 0;
@@ -137,7 +196,7 @@ bool PicturePU::LCDC_WINDOW_enabled() {
 	return (LCDC & (1 << 5)) != 0;
 }
 
-uint8_t PicturePU::LCDC_WINDOW_map_area() {
+uint16_t PicturePU::LCDC_WINDOW_map_area() {
 	if (LCDC & (1 << 6)) {
 		return 0x9C00;
 	}
@@ -241,6 +300,6 @@ void PicturePU::LCD_write(uint16_t address, const uint8_t value) {
 
 	}
 	else if (address == OBP1_ADDR) {
-		update_palettes(value & 0b11111100, 2);
+		update_palettes(value & 0b11111100, 1);
 	}
 }

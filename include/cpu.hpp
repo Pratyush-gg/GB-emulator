@@ -53,14 +53,6 @@ public:
     void set_register(REG_TYPE reg, uint16_t value);
 };
 
-enum interrupt_type {
-    it_vblank = 1,
-    it_lcd_stat = 2,
-    it_timer = 4,
-    it_serial = 8,
-    it_joypad = 16,
-};
-
 class CPU {
 public:
     explicit CPU(const std::shared_ptr<MMU> &mmu, const std::shared_ptr<InterruptHandler> &interruptHandler) :
@@ -104,6 +96,8 @@ public:
 
     void print_cpu_state(uint16_t prev_PC) const;
 
+    void serviceInterrupt(uint16_t interruptVector);
+
 private:
     std::shared_ptr<MMU> bus;
     std::shared_ptr<InterruptHandler> interruptHandler;
@@ -143,8 +137,6 @@ private:
     int process_SCF();
     int process_HALT();
     int process_CB();
-
-    void serviceInterrupt(uint16_t interruptVector);
 
 };
 

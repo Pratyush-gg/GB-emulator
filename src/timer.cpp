@@ -23,7 +23,7 @@ void Timer::tick(uint8_t cycles) {
 			default: break;
 		}
 
-		if ((timerControl & (1 << 2)) && timer_update) {
+		if ((timer_update && timerControl & (1 << 2))) {
             timerCounter++;
 			if (timerCounter == 0xFF) {
                 this->timerCounter = this->timerModulo;

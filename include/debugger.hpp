@@ -88,6 +88,7 @@ public:
     explicit Debugger(const std::string& filename);
     ~Debugger();
 
+    uint32_t getCurrentFrame() const;
     void render();
     void render_hex_view();
     void render_registers_panel();
