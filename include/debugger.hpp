@@ -12,6 +12,7 @@ static constexpr int scale = 2.0;
 #include <stack>
 #include <unordered_set>
 #include <vector>
+#include <array>
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -95,6 +96,7 @@ public:
     void render_command_prompt();
     void render_disassembly_panel();
     void render_tile_data_panel();
+    void get_video_buffer(std::array<uint32_t, 160 * 144>& out_buffer);
 };
 
 inline debuggerInst instr_table[256] = {

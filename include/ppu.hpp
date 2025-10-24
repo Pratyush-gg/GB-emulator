@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <array>
 #include <memory>
+#include <queue>
 
 #include "mmu.hpp"
 
@@ -19,6 +20,14 @@ enum STAT_SOURCES {
 	SS_VBLANK = (1 << 4),
 	SS_OAM = (1 << 5),
 	SS_LYC = (1 << 6),
+};
+
+enum FETCH_STATE {
+	FS_READ_TILE,
+	FS_READ_DATA0,
+	FS_READ_DATA1,
+	FS_SLEEP,
+	FS_PUSH
 };
 
 class PicturePU {
@@ -42,7 +51,7 @@ class PicturePU {
 	std::array<uint8_t, OAM_SIZE> oam = {};
 
 	uint32_t line_ticks = 0;
-	std::array<uint32_t, SCREEN_WIDTH * SCREEN_HEIGHT> framebuffer = {0};
+	std::array<uint32_t, SCREEN_WIDTH * SCREEN_HEIGHT> video_buffer = {0};
 
 	struct DMA {
 		bool active;
@@ -53,6 +62,18 @@ class PicturePU {
 
 	DMA dma{};
 
+	std::queue<uint32_t> pixel_fifo = {};
+
+	FETCH_STATE current_fetch_state = FS_READ_TILE;
+	uint8_t line_x = 0;
+	uint8_t pushed_x = 0;
+	uint8_t fetch_x = 0;
+	uint8_t background_fetch_data[3];
+	uint8_t fetch_entry_data[6];
+	uint8_t map_y;
+	uint8_t map_x;
+	uint8_t tile_y;
+	uint8_t fifo_x;
 	/*
 	0xFF40 – LCDC   (LCD Control)
 	0xFF41 – STAT   (LCD Status)
@@ -98,7 +119,7 @@ class PicturePU {
 	uint32_t sp1_colors[4] = {};
 	uint32_t sp2_colors[4] = {};
 
-	uint32_t default_colors[4] = {0xFF9BBC0F, 0xFF8BAC0F, 0xFF306230, 0xFF0F380F};
+	uint32_t default_colors[4] = {0xFF0FBC9B, 0xFF0FAC8B, 0xFF306230, 0xFF0F380F};
 
     std::weak_ptr<MMU> bus;
 
@@ -110,6 +131,10 @@ public:
     void setMMU(const std::weak_ptr<MMU> &_bus) {
         bus = _bus;
     }
+
+	const std::array<uint32_t, SCREEN_WIDTH * SCREEN_HEIGHT>& get_frame_buffer() const {
+		return video_buffer;
+	}
 
     [[nodiscard]] uint8_t read_vram(uint16_t address) const;
 	void write_vram(uint16_t address, uint8_t value);
@@ -123,6 +148,10 @@ public:
 	uint32_t current_frame = 0;
 
 	void increment_LY();
+	bool pipeline_queue_add();
+	void pipeline_push_pixel();
+	void pipeline_fetch();
+	void pipeline_process();
 	void ppu_tick(unsigned cycles);
 	void ppu_mode_oam();
 	void ppu_mode_xfer();

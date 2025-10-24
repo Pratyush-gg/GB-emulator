@@ -23,7 +23,7 @@ public:
 	std::weak_ptr<CPU> cpu;
 
 	void interruptRequest(InterruptType type);
-	uint8_t interruptHandle();
+	void interruptHandle();
 	bool interruptCheck(uint16_t address, InterruptType type);
 
 	inline bool hasPendingInterrupt() const {

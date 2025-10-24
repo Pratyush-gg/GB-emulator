@@ -25,7 +25,7 @@ bool InterruptHandler::interruptCheck(uint16_t address, InterruptType type) {
 	return false;
 }
 
-uint8_t InterruptHandler::interruptHandle() {
+void InterruptHandler::interruptHandle() {
 	if (InterruptHandler::interruptCheck(0x40, IT_VBLANK)) {
 
 	}

@@ -56,3 +56,7 @@ DebugContext Emulator::getDebugContext() const {
          this->cpu->getRegisterDebug()
     };
 }
+
+const std::array<uint32_t, 160 * 144>& Emulator::get_emu_video_buffer() const {
+    return ppu->get_frame_buffer();
+}

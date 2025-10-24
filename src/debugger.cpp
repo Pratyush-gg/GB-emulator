@@ -3,6 +3,7 @@
 #include <functional>
 #include <iomanip>
 #include <sstream>
+#include <array>
 #include <SFML/Graphics/Color.hpp>
 
 #include "imgui.h"
@@ -43,7 +44,7 @@ void Debugger::emulator_thread_loop() {
 
             // A "timeslice" or batch size. You can tune this number.
             // It's the number of instructions to run before releasing the lock.
-            const int instructions_per_slice = 1000;
+            const int instructions_per_slice = 17556;
 
             for (int i = 0; i < instructions_per_slice; ++i) {
                 if (breakpoints.count(this->getCurrentInstruction())) {
@@ -56,7 +57,7 @@ void Debugger::emulator_thread_loop() {
 
         // Briefly pause to allow the UI thread a chance to acquire the lock.
         // This prevents the emulator thread from hogging the CPU.
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::yield();
     }
 }
 
@@ -498,4 +499,9 @@ void Debugger::inLoop() {
 void Debugger::reload_rom() {
     this->emu = std::make_shared<Emulator>(romFilename);
     this->debugContext = emu->getDebugContext();
+}
+
+void Debugger::get_video_buffer(std::array<uint32_t, 160 * 144> &out_buffer) {
+    std::lock_guard<std::mutex> lock(emu_mutex);
+    out_buffer = emu->get_emu_video_buffer();
 }

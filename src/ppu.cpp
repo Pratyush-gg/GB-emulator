@@ -81,15 +81,121 @@ void PicturePU::increment_LY() {
 	}
 }
 
+bool PicturePU::pipeline_queue_add() {
+	if (pixel_fifo.size() > 8) {
+		return false;
+	}
+
+	int x = fetch_x - (8 - (SCX % 8));
+	for (int i = 0; i < 8; ++i) {
+		int bit = 7 - i;
+		uint8_t high = !!(background_fetch_data[1] & (1 << bit));
+		uint8_t low = !!(background_fetch_data[2] & (1 << bit)) << 1;
+		uint32_t color_id = bg_colors[high | low];
+
+		if (x >= 0) {
+			pixel_fifo.push(color_id);
+		}
+	}
+	return true;
+}
+
+
+void PicturePU::pipeline_push_pixel() {
+	if (pixel_fifo.size() > 8) {
+		uint32_t pixel_data = pixel_fifo.front();
+		pixel_fifo.pop();
+
+		if (line_x >= (SCX % 8)) {
+			video_buffer[pushed_x + (LY * SCREEN_WIDTH)] = pixel_data;
+			pushed_x++;
+		}
+		line_x++;
+	}
+}
+
+void PicturePU::pipeline_fetch() {
+	switch (current_fetch_state) {
+		case  FS_READ_TILE: {
+			if (LCDC_BGW_enabled()) {
+				if (std::shared_ptr<MMU> tempBus = bus.lock()) {
+					background_fetch_data[0] = tempBus->read_data((LCDC_BG_map_area() + (map_x / 8)) + (map_y / 8) * 32);
+				}
+				if (LCDC_BGW_data_area() == 0x8000) {
+					background_fetch_data[0] += 128;
+				}
+			}
+			current_fetch_state = FS_READ_DATA0;
+			fetch_x += 8;
+			break;
+		}
+
+		case FS_READ_DATA0: {
+			if (std::shared_ptr<MMU> tempBus = bus.lock()) {
+				background_fetch_data[1] = tempBus->read_data(LCDC_BGW_data_area() + (background_fetch_data[0] * 16) + tile_y);
+			}
+			current_fetch_state = FS_READ_DATA1;
+			break;
+		}
+
+		case FS_READ_DATA1: {
+			if (std::shared_ptr<MMU> tempBus = bus.lock()) {
+				background_fetch_data[2] = tempBus->read_data(LCDC_BGW_data_area() + (background_fetch_data[0] * 16) + tile_y + 1);
+			}
+			current_fetch_state = FS_SLEEP;
+			break;
+		}
+
+		case FS_SLEEP: {
+			current_fetch_state = FS_PUSH;
+			break;
+		}
+
+		case FS_PUSH: {
+			if (pipeline_queue_add()) {
+				current_fetch_state = FS_READ_TILE;
+			}
+			break;
+		}
+	}
+}
+
+void PicturePU::pipeline_process() {
+	map_y = LY + SCY;
+	map_x = fetch_x + SCX;
+	tile_y = ((LY + SCY) % 8) * 2;
+
+	if (!(line_ticks & 1)) {
+		pipeline_fetch();
+	}
+
+	pipeline_push_pixel();
+}
+
 void PicturePU::ppu_mode_oam() {
 	if (line_ticks >= 80) {
 		LCDS_mode_set(MODE_XFER);
+
+		current_fetch_state = FS_READ_TILE;
+		line_x = 0;
+		pushed_x = 0;
+		fetch_x = 0;
+		fifo_x = 0;
 	}
 }
 
 void PicturePU::ppu_mode_xfer() {
-	if (line_ticks >= 252) {
+	pipeline_process();
+
+	if (pushed_x >= SCREEN_WIDTH) {
+		while (pixel_fifo.size() > 0) {
+			pixel_fifo.pop();
+		}
 		LCDS_mode_set(MODE_HBLANK);
+
+		if (LCDS_STAT_int(SS_HBLANK)) {
+			interruptHandler->interruptRequest(IT_LCD_STAT);
+		}
 	}
 }
 

@@ -1,10 +1,12 @@
 #pragma once
 #include <cstdint>
 #include <memory>
+#include <array>
 
 #include "cpu.hpp"
 #include "mmu.hpp"
 #include "cart.hpp"
+#include "ppu.hpp"
 
 struct DebugContext {
     std::reference_wrapper<const MMU> mmu;
@@ -41,4 +43,6 @@ public:
     uint32_t getCurrentFrame() const;
 
     DebugContext getDebugContext() const;
+
+    const std::array<uint32_t, 160 * 144>& get_emu_video_buffer() const;
 };
