@@ -92,13 +92,13 @@ void CPU::dbg_update() {
 }
 
 void CPU::dbg_print() const {
-    if (dbg_written) {
-        std::cout << "Debug Message: ";
-        for (int i = 0; i < dbg_msg_size; ++i) {
-            std::cout << dbg_msg[i];
-        }
-        std::cout << std::endl;
-    }
+    // if (dbg_written) {
+    //     std::cout << "Debug Message: ";
+    //     for (int i = 0; i < dbg_msg_size; ++i) {
+    //         std::cout << dbg_msg[i];
+    //     }
+    //     std::cout << std::endl;
+    // }
 }
 
 void CPU::print_cpu_state(const uint16_t prev_PC) const {

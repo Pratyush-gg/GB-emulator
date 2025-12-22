@@ -30,6 +30,18 @@ enum FETCH_STATE {
 	FS_PUSH
 };
 
+struct oam_entry {
+	uint8_t y_pos;
+	uint8_t x_pos;
+	uint8_t tile_index;
+	uint8_t attribute;
+};
+
+struct oam_line_entry {
+	oam_entry entry;
+	struct oam_line_entry *next = nullptr;
+};
+
 class PicturePU {
 
 	std::shared_ptr<InterruptHandler> interruptHandler;
@@ -45,10 +57,22 @@ class PicturePU {
 	static constexpr uint16_t OAM_OFFSET = 0xFE00;
 	static constexpr uint16_t OAM_SIZE = 0xA0;
 
+
+
 	uint8_t clock = 0;
 
 	std::array<uint8_t, VRAM_SIZE> vram = {};
-	std::array<uint8_t, OAM_SIZE> oam = {};
+
+	std::array<oam_entry, OAM_SIZE / 4> oam_ram = {};
+
+	uint8_t line_sprite_count = 0;
+	oam_line_entry *line_sprites = nullptr;
+	std::array<oam_line_entry, 10> line_entry_array = {};
+
+	uint8_t fetched_entry_count = 0;
+	oam_entry fetched_entry[3];
+
+	uint8_t window_line = 0;
 
 	uint32_t line_ticks = 0;
 	std::array<uint32_t, SCREEN_WIDTH * SCREEN_HEIGHT> video_buffer = {0};
@@ -153,10 +177,16 @@ public:
 	void pipeline_fetch();
 	void pipeline_process();
 	void ppu_tick(unsigned cycles);
+	void load_line_sprites();
 	void ppu_mode_oam();
 	void ppu_mode_xfer();
 	void ppu_mode_hblank();
 	void ppu_mode_vblank();
+	uint32_t fetch_sprite_pixels(int bit, uint32_t color_id, uint8_t bg_color);
+	void pipeline_load_sprite_tile();
+	void pipeline_load_sprite_data(uint8_t offset);
+	bool window_visible();
+	void pipeline_load_window_tile();
 
 	void dma_start(uint8_t value);
 	void dma_tick(uint8_t cycles);
