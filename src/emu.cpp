@@ -13,9 +13,9 @@ Emulator::Emulator(const std::string& rom_filename):
     // apu = std::make_shared<AudioPU>();
     interrupts = std::make_shared<InterruptHandler>();
     ppu = std::make_shared<PicturePU>(interrupts);
-    // joypad = std::make_shared<JoyPad>();
+    joypad = std::make_shared<JoyPad>();
     timer = std::make_shared<Timer>(interrupts);
-    bus = std::make_shared<MMU>(cart, ppu, timer, interrupts);
+    bus = std::make_shared<MMU>(cart, ppu, timer, interrupts, joypad);
     cpu = std::make_shared<CPU>(bus, interrupts);
 
     std::weak_ptr<MMU> PPU_MMU_Pointer(bus);

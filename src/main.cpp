@@ -62,6 +62,12 @@ int main(int argc, char* argv[]) {
             if (event.type == sf::Event::Closed) {
                 game_window.close();
             }
+            else if (event.type == sf::Event::KeyPressed) {
+                debugger.handle_input(event.key.code, true);
+            }
+            else if (event.type == sf::Event::KeyReleased) {
+                debugger.handle_input(event.key.code, false);
+            }
         }
 
         ImGui::SFML::Update(debugger_window, deltaClock.restart());

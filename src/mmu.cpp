@@ -1,6 +1,7 @@
 #include "../include/mmu.hpp"
 #include "../include/gb_utils.hpp"
 #include "../include/ppu.hpp"
+#include "../include/joypad.hpp"
 
 #include <iostream>
 
@@ -41,6 +42,7 @@ uint8_t MMU::read_data(const uint16_t address) const {
         return 0;
     }
     else if (address < 0xFF80) {
+        if (address == 0xFF00) return joypad->joypad_get_output();
         if (address == 0xFF01) return serial_data[0];
         if (address == 0xFF02) return serial_data[1];
         if (address == 0xFF0F) return this->interrupt->IF;
@@ -52,7 +54,7 @@ uint8_t MMU::read_data(const uint16_t address) const {
             return ppu->LCD_read(address);
         }
 
-        // TODO : add joypad and APU.
+        // TODO : add APU.
     }
     if (address < HRAM_OFFSET + HRAM_SIZE) {
         const uint16_t offset = address - HRAM_OFFSET;
@@ -114,6 +116,11 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     else if (address >= 0xFF00 && address < 0xFF80) {
+        if (address == 0xFF00) {
+            joypad->joypad_set_select(value);
+            return;
+        }
+
         if (address == 0xFF01) {
             serial_data[0] = value;
             return;
@@ -138,7 +145,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
             return;
         }
 
-        // TODO: Add Joypad (0xFF00) and APU (0xFF10–0xFF3F)
+        // TODO: Add APU (0xFF10–0xFF3F)
         std::cerr << "Write to unusable memory: " << std::hex << address << std::endl;
     }
 

@@ -7,6 +7,9 @@
 #include "mmu.hpp"
 #include "cart.hpp"
 #include "ppu.hpp"
+#include "timer.hpp"
+#include "interrupt.hpp"
+#include "joypad.hpp"
 
 struct DebugContext {
     std::reference_wrapper<const MMU> mmu;
@@ -27,8 +30,8 @@ class Emulator {
     std::shared_ptr<PicturePU> ppu;
     // std::shared_ptr<AudioPU> apu;
     std::shared_ptr<Timer> timer;
-    std::shared_ptr<InterruptHandler> interrupts;;
-    // std::shared_ptr<JoyPad> joypad;
+    std::shared_ptr<InterruptHandler> interrupts;
+    std::shared_ptr<JoyPad> joypad;
 
     void pollInput();
     void updateState();
@@ -43,6 +46,10 @@ public:
     uint32_t getCurrentFrame() const;
 
     DebugContext getDebugContext() const;
+
+    std::shared_ptr<JoyPad> getJoyPad() {
+        return joypad;
+    }
 
     const std::array<uint32_t, 160 * 144>& get_emu_video_buffer() const;
 };

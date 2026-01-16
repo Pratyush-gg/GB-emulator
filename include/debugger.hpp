@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "SFML/Window/Keyboard.hpp"
 
 static constexpr int scale = 2.0;
 
@@ -97,6 +98,7 @@ public:
     void render_disassembly_panel();
     void render_tile_data_panel();
     void get_video_buffer(std::array<uint32_t, 160 * 144>& out_buffer);
+    void handle_input(sf::Keyboard::Key key, bool is_pressed);
 };
 
 inline debuggerInst instr_table[256] = {

@@ -23,7 +23,7 @@
 
 // TODO: Implement all this one by one
 // class AudioPU;
-// class JoyPad;
+class JoyPad;
 
 class PicturePU;
 
@@ -34,7 +34,7 @@ private:
     // std::shared_ptr<AudioPU> apu;
     std::shared_ptr<Timer> timer;
     std::shared_ptr<InterruptHandler> interrupt;
-    // std::shared_ptr<JoyPad> joypad;
+    std::shared_ptr<JoyPad> joypad;
 
     static constexpr uint16_t CART_SEG1_OFFSET = 0;
     static constexpr uint16_t CART_SEG1_SIZE = 0x8000;
@@ -75,17 +75,17 @@ public:
     MMU(std::shared_ptr<Cartridge> _cartridge,
         std::shared_ptr<PicturePU> _ppu,
         std::shared_ptr<Timer> _timer,
-        std::shared_ptr<InterruptHandler> _interrupt
+        std::shared_ptr<InterruptHandler> _interrupt,
         // std::shared_ptr<AudioPU> _apu,
-        // std::shared_ptr<JoyPad> _joypad
+        std::shared_ptr<JoyPad> _joypad
         ) : cartridge(std::move(_cartridge)),
             ppu(std::move(_ppu)),
             timer(std::move(_timer)),
             interrupt(std::move(_interrupt)),
-            wram(), hram(), serial_data()
+            wram(), hram(), serial_data(),
     // apu(_apu),
     // timer(_timer),
-    // joypad(_joypad)
+    joypad(std::move(_joypad))
     {
     }
 

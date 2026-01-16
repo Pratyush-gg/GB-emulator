@@ -505,3 +505,20 @@ void Debugger::get_video_buffer(std::array<uint32_t, 160 * 144> &out_buffer) {
     std::lock_guard<std::mutex> lock(emu_mutex);
     out_buffer = emu->get_emu_video_buffer();
 }
+
+void Debugger::handle_input(sf::Keyboard::Key key, bool is_pressed) {
+    auto state = emu->getJoyPad()->joypad_get_state();
+
+    switch (key) {
+        case sf::Keyboard::Z:      state->b = is_pressed;      break; // B Button
+        case sf::Keyboard::X:      state->a = is_pressed;      break; // A Button
+        case sf::Keyboard::Enter:  state->start = is_pressed;  break; // Start
+        case sf::Keyboard::Tab:    state->select = is_pressed; break; // Select
+        case sf::Keyboard::Up:     state->up = is_pressed;     break; // D-Pad Up
+        case sf::Keyboard::Down:   state->down = is_pressed;   break; // D-Pad Down
+        case sf::Keyboard::Left:   state->left = is_pressed;   break; // D-Pad Left
+        case sf::Keyboard::Right:  state->right = is_pressed;  break; // D-Pad Right
+        default: break;
+    }
+}
+
