@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "interrupt.hpp"
 
 class JoyPad {
 public:

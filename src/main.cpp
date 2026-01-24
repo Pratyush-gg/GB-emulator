@@ -7,6 +7,7 @@
 #include "SFML/Graphics.hpp"
 #include <iostream>
 #include <array>
+#include <optional>
 
 #include "ppu.hpp"
 #include "../fonts/ttf/JetBrainsMono-Medium.h"
@@ -25,7 +26,10 @@ int main(int argc, char* argv[]) {
     game_window.setPosition(sf::Vector2i(100, 100));
     debugger_window.setPosition(sf::Vector2i(100 + GAME_WIDTH + 100, 400));
 
-    ImGui::SFML::Init(debugger_window);
+    if (!ImGui::SFML::Init(debugger_window)) {
+        std::cerr << "Failed to initialize ImGui-SFML" << std::endl;
+        return -1;
+    }
 
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
@@ -34,39 +38,50 @@ int main(int argc, char* argv[]) {
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    ImGui::SFML::UpdateFontTexture();
+    if (!ImGui::SFML::UpdateFontTexture()) {
+        std::cerr << "Failed to update font texture" << std::endl;
+        return -1;
+    }
 
     init_instructions();
 
     Debugger debugger(argv[1]);
 
     sf::Texture game_texture;
-    game_texture.create(160, 144);
+
+    if (!game_texture.resize({160, 144})) {
+        std::cerr << "Failed to create game texture" << std::endl;
+        return -1;
+    }
+
     sf::Sprite game_sprite(game_texture);
-    game_sprite.setScale((GAME_SCALE), (GAME_SCALE));
+
+    game_sprite.setScale({static_cast<float>(GAME_SCALE), static_cast<float>(GAME_SCALE)});
 
     std::array<uint32_t, 160 * 144> game_buffer;
 
     sf::Clock deltaClock;
 
     while (debugger_window.isOpen() && game_window.isOpen()){
-        sf::Event event{};
-        while (debugger_window.pollEvent(event)) {
-            ImGui::SFML::ProcessEvent(debugger_window, event);
-            if (event.type == sf::Event::Closed) {
+
+        while (const std::optional event = debugger_window.pollEvent()) {
+            ImGui::SFML::ProcessEvent(debugger_window, *event);
+
+            if (event->is<sf::Event::Closed>()) {
                 debugger_window.close();
             }
         }
 
-        while (game_window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
+        while (const std::optional event = game_window.pollEvent()) {
+            if (event->is<sf::Event::Closed>()) {
                 game_window.close();
             }
-            else if (event.type == sf::Event::KeyPressed) {
-                debugger.handle_input(event.key.code, true);
+
+            else if (const auto* keyEvent = event->getIf<sf::Event::KeyPressed>()) {
+                debugger.handle_input(keyEvent->code, true);
             }
-            else if (event.type == sf::Event::KeyReleased) {
-                debugger.handle_input(event.key.code, false);
+            else if (const auto* keyEvent = event->getIf<sf::Event::KeyReleased>()) {
+                debugger.handle_input(keyEvent->code, false);
             }
         }
 
@@ -75,7 +90,7 @@ int main(int argc, char* argv[]) {
 
         debugger.get_video_buffer(game_buffer);
 
-        game_texture.update(reinterpret_cast<const sf::Uint8*>(game_buffer.data()));
+        game_texture.update(reinterpret_cast<const std::uint8_t*>(game_buffer.data()));
 
         debugger_window.clear(sf::Color::Black);
         ImGui::SFML::Render(debugger_window);

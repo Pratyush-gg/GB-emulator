@@ -18,6 +18,8 @@ Emulator::Emulator(const std::string& rom_filename):
     bus = std::make_shared<MMU>(cart, ppu, timer, interrupts, joypad);
     cpu = std::make_shared<CPU>(bus, interrupts);
 
+    interrupts->setCPU(cpu);
+
     std::weak_ptr<MMU> PPU_MMU_Pointer(bus);
     ppu->setMMU(PPU_MMU_Pointer);
 }

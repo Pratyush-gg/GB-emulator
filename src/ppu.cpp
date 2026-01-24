@@ -37,8 +37,8 @@ uint8_t PicturePU::read_oam(const uint16_t address) const {
 }
 
 void PicturePU::write_oam(const uint16_t address, const uint8_t value) {
-	if (address < OAM_OFFSET || address >= OAM_OFFSET + OAM_SIZE)
-		throw std::out_of_range("OAM write out of bounds");
+	// if (address < OAM_OFFSET || address >= OAM_OFFSET + OAM_SIZE)
+	// 	throw std::out_of_range("OAM write out of bounds");
 	auto *p = reinterpret_cast<uint8_t*>(oam_ram.data());
 	p[address - OAM_OFFSET] = value;
 }

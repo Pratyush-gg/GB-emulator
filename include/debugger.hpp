@@ -75,7 +75,7 @@ class Debugger {
     static constexpr unsigned int TILE_DATA_HEIGHT_PX = 24 * 8;
 
     sf::Texture tile_texture;
-    std::vector<sf::Uint8> tile_pixel_buffer;
+    std::vector<std::uint8_t> tile_pixel_buffer;
 
 private:
     void emulator_thread_loop(); // The main function for our new thread
