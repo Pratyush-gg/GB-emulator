@@ -24,13 +24,13 @@ uint8_t JoyPad::joypad_get_output() {
         if (joypad_get_state()->start) {
             output &= ~(1 << 3);
         }
-        else if (joypad_get_state()->select) {
+        if (joypad_get_state()->select) {
             output &= ~(1 << 2);
         }
-        else if (joypad_get_state()->a) {
+        if (joypad_get_state()->a) {
             output &= ~(1 << 0);
         }
-        else if (joypad_get_state()->b) {
+        if (joypad_get_state()->b) {
             output &= ~(1 << 1);
         }
     }
@@ -39,13 +39,13 @@ uint8_t JoyPad::joypad_get_output() {
         if (joypad_get_state()->left) {
             output &= ~(1 << 1);
         }
-        else if (joypad_get_state()->right) {
+        if (joypad_get_state()->right) {
             output &= ~(1 << 0);
         }
-        else if (joypad_get_state()->up) {
+        if (joypad_get_state()->up) {
             output &= ~(1 << 2);
         }
-        else if (joypad_get_state()->down) {
+        if (joypad_get_state()->down) {
             output &= ~(1 << 3);
         }
     }

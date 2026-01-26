@@ -12,7 +12,7 @@ Emulator::Emulator(const std::string& rom_filename):
     cart = std::make_shared<Cartridge>(rom_filename);
     // apu = std::make_shared<AudioPU>();
     interrupts = std::make_shared<InterruptHandler>();
-    ppu = std::make_shared<PicturePU>(interrupts);
+    ppu = std::make_shared<PicturePU>(interrupts, cart);
     joypad = std::make_shared<JoyPad>();
     timer = std::make_shared<Timer>(interrupts);
     bus = std::make_shared<MMU>(cart, ppu, timer, interrupts, joypad);

@@ -41,10 +41,28 @@ public:
     std::vector<uint8_t> rom_data;
     Header cart_header;
 
+    bool ram_enabled;
+    bool ram_banking;
+    uint8_t *rom_bank_x;
+    uint8_t banking_mode;
+    uint8_t rom_bank_value;
+    uint8_t ram_bank_value;
+    uint8_t *ram_bank;
+    uint8_t *ram_banks[16];
+    bool battery;
+    bool needs_save;
+
+    bool cart_needs_save() const;
+    bool cart_mbc1() const;
+    bool cart_battery() const;
+    void cart_setup_banking();
+    void cart_battery_load();
+    void cart_battery_save();
+
     void print_cart_info() const;
 
     uint8_t cart_read(uint16_t address) const;
-    // void cart_write(uint16_t address, uint8_t value);
+    void cart_write(uint16_t address, uint8_t value);
 };
 
 const std::unordered_map<uint16_t, std::string> license_code_lookup = {

@@ -45,6 +45,7 @@ struct oam_line_entry {
 class PicturePU {
 
 	std::shared_ptr<InterruptHandler> interruptHandler;
+	std::shared_ptr<Cartridge> cartridge;
 
 	static constexpr unsigned SCREEN_WIDTH = 160;
 	static constexpr unsigned SCREEN_HEIGHT = 144;
@@ -150,7 +151,7 @@ class PicturePU {
     // PicturePU(const std::weak_ptr<MMU> &_bus) : bus(_bus) {}
 
 public:
-	PicturePU(std::shared_ptr<InterruptHandler> handler);
+	PicturePU(std::shared_ptr<InterruptHandler> handler, std::shared_ptr<Cartridge> cart);
 
     void setMMU(const std::weak_ptr<MMU> &_bus) {
         bus = _bus;

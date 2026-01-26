@@ -13,8 +13,9 @@ static long prev_frame_time = 0;
 static long start_timer = 0;
 static long frame_count = 0;
 
-PicturePU::PicturePU(std::shared_ptr<InterruptHandler> interruptHandler) {
+PicturePU::PicturePU(std::shared_ptr<InterruptHandler> interruptHandler, std::shared_ptr<Cartridge> cartridge) {
 	this->interruptHandler = interruptHandler;
+	this->cartridge = cartridge;
 }
 
 uint8_t PicturePU::read_vram(const uint16_t address) const {
@@ -37,8 +38,8 @@ uint8_t PicturePU::read_oam(const uint16_t address) const {
 }
 
 void PicturePU::write_oam(const uint16_t address, const uint8_t value) {
-	// if (address < OAM_OFFSET || address >= OAM_OFFSET + OAM_SIZE)
-	// 	throw std::out_of_range("OAM write out of bounds");
+	if (address < OAM_OFFSET || address >= OAM_OFFSET + OAM_SIZE)
+		throw std::out_of_range("OAM write out of bounds");
 	auto *p = reinterpret_cast<uint8_t*>(oam_ram.data());
 	p[address - OAM_OFFSET] = value;
 }
@@ -60,7 +61,7 @@ void PicturePU::dma_tick(uint8_t cycles) {
 		}
 
 		if (std::shared_ptr<MMU> tempBus = bus.lock()) {
-			write_oam(dma.byte, tempBus->read_data((dma.value * 0x100) + dma.byte));
+			write_oam(OAM_OFFSET + dma.byte, tempBus->read_data((dma.value * 0x100) + dma.byte));
 		}
 		dma.byte++;
 
@@ -423,6 +424,10 @@ void PicturePU::ppu_mode_hblank() {
 				frame_count = 0;
 
 				std::cout << "FPS: " << fps << std::endl;
+
+				if (cartridge->cart_needs_save()) {
+					cartridge->cart_battery_save();
+				}
 			}
 
 			frame_count++;

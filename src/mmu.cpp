@@ -55,6 +55,11 @@ uint8_t MMU::read_data(const uint16_t address) const {
         }
 
         // TODO : add APU.
+
+        if (address >= 0xFF10 && address <= 0xFF3F) {
+            // return apu->readAddr(address);
+            return 0xFF;
+        }
     }
     if (address < HRAM_OFFSET + HRAM_SIZE) {
         const uint16_t offset = address - HRAM_OFFSET;
@@ -68,7 +73,7 @@ uint8_t MMU::read_data(const uint16_t address) const {
 
 void MMU::write_data(uint16_t address, uint8_t value) {
     if (address < CART_SEG1_OFFSET + CART_SEG1_SIZE) {
-        not_implemented("cartridge write / MBC");
+        cartridge->cart_write(address, value);
         return;
     }
 
@@ -78,7 +83,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     else if (address >= CART_SEG2_OFFSET && address < CART_SEG2_OFFSET + CART_SEG2_SIZE) {
-        not_implemented("cartridge write / MBC");
+        cartridge->cart_write(address, value);
         return;
     }
 
@@ -111,7 +116,6 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     else if (address >= 0xFEA0 && address < 0xFF00) {
-        std::cerr << "Write to unusable memory: " << std::hex << address << std::endl;
         return;
     }
 
@@ -145,8 +149,14 @@ void MMU::write_data(uint16_t address, uint8_t value) {
             return;
         }
 
+        if (address >= 0xFF10 && address <= 0xFF3F) {
+            // apu->writeAddr(address, value);
+            return;
+        }
+
         // TODO: Add APU (0xFF10–0xFF3F)
-        std::cerr << "Write to unusable memory: " << std::hex << address << std::endl;
+        // std::cerr << "Write to unusable memory: " << std::hex << address << std::endl;
+        return;
     }
 
     else if (address >= HRAM_OFFSET && address < HRAM_OFFSET + HRAM_SIZE) {
