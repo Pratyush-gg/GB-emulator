@@ -415,7 +415,7 @@ void PicturePU::ppu_mode_hblank() {
 			uint32_t frame_time = end - prev_frame_time;
 
 			if (frame_time < target_frame_time) {
-				delay(target_frame_time - frame_time);
+				// delay(target_frame_time - frame_time);
 			}
 
 			if (end - start_timer >= 1000) {

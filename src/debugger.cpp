@@ -47,7 +47,7 @@ void Debugger::emulator_thread_loop() {
 
             // A "timeslice" or batch size. You can tune this number.
             // It's the number of instructions to run before releasing the lock.
-            const int instructions_per_slice = 17556;
+            const int instructions_per_slice = 1;
 
             for (int i = 0; i < instructions_per_slice; ++i) {
                 if (breakpoints.count(this->getCurrentInstruction())) {
@@ -78,11 +78,11 @@ void Debugger::render() {
 
     ImGui::Begin("Main", nullptr , host_window_flags);
 
-    render_disassembly_panel();
-    render_tile_data_panel();
+    // render_disassembly_panel();
+    // render_tile_data_panel();
     render_command_prompt();
-    render_registers_panel();
-    render_hex_view();
+    // render_registers_panel();
+    // render_hex_view();
 
     ImGui::End();
 }

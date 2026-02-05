@@ -20,8 +20,16 @@ int main(int argc, char* argv[]) {
     const unsigned int GAME_WIDTH = 160 * GAME_SCALE;
     const unsigned int GAME_HEIGHT = 144 * GAME_SCALE;
 
+    std::cout << "Current SFML Version " << SFML_VERSION_MAJOR << "." << SFML_VERSION_MINOR << "." << SFML_VERSION_PATCH << std::endl;
+
     sf::RenderWindow debugger_window(sf::VideoMode({DEBUG_WIDTH, DEBUG_HEIGHT}), "GB-Debugger");
     sf::RenderWindow game_window(sf::VideoMode({GAME_WIDTH, GAME_HEIGHT}), "GB-Emulator");
+
+    debugger_window.setFramerateLimit(0);
+    game_window.setFramerateLimit(0);
+
+    game_window.setVerticalSyncEnabled(false);
+    debugger_window.setVerticalSyncEnabled(false);
 
     game_window.setPosition(sf::Vector2i(100, 100));
     debugger_window.setPosition(sf::Vector2i(100 + GAME_WIDTH + 100, 400));
@@ -45,7 +53,10 @@ int main(int argc, char* argv[]) {
 
     init_instructions();
 
-    Debugger debugger(argv[1]);
+    std::string inputRom = "C:\\Users\\shawn\\CLionProjects\\GB-emulator\\roms\\Tetris.gb";
+    if (argc > 1) inputRom = argv[1];
+
+    Debugger debugger(inputRom);
 
     sf::Texture game_texture;
 
@@ -62,6 +73,7 @@ int main(int argc, char* argv[]) {
 
     sf::Clock deltaClock;
 
+
     while (debugger_window.isOpen() && game_window.isOpen()){
 
         while (const std::optional event = debugger_window.pollEvent()) {
@@ -72,7 +84,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        while (const std::optional event = game_window.pollEvent()) {
+        std::optional<sf::Event> event;
+        while (event = game_window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 game_window.close();
             }
