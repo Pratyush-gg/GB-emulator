@@ -63,7 +63,6 @@ class Debugger {
     void stepIn();
     void stepOut();
     void stepOver();
-    void runContinue();
     void toggleBreakpoint(uint16_t address);
     void inLoop();
     void reload_rom();
@@ -89,6 +88,8 @@ private:
 public:
     explicit Debugger(const std::string& filename);
     ~Debugger();
+
+    void runContinue();
 
     uint32_t getCurrentFrame() const;
     void render();
