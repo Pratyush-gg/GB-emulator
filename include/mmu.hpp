@@ -1,6 +1,7 @@
 #pragma once
 #include "cart.hpp"
 #include "timer.hpp"
+#include "apu.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -31,7 +32,7 @@ class MMU {
 private:
     std::shared_ptr<Cartridge> cartridge;
     std::shared_ptr<PicturePU> ppu;
-    // std::shared_ptr<AudioPU> apu;
+    std::shared_ptr<AudioPU> apu;
     std::shared_ptr<Timer> timer;
     std::shared_ptr<InterruptHandler> interrupt;
     std::shared_ptr<JoyPad> joypad;
@@ -76,21 +77,20 @@ public:
         std::shared_ptr<PicturePU> _ppu,
         std::shared_ptr<Timer> _timer,
         std::shared_ptr<InterruptHandler> _interrupt,
-        // std::shared_ptr<AudioPU> _apu,
+        std::shared_ptr<AudioPU> _apu,
         std::shared_ptr<JoyPad> _joypad
         ) : cartridge(std::move(_cartridge)),
             ppu(std::move(_ppu)),
             timer(std::move(_timer)),
             interrupt(std::move(_interrupt)),
             wram(), hram(), serial_data(),
-    // apu(_apu),
-    // timer(_timer),
-    joypad(std::move(_joypad))
+            apu(std::move(_apu)),
+			joypad(std::move(_joypad))
     {
     }
 
     uint8_t read_data(uint16_t address) const;
-    void write_data(uint16_t, uint8_t value);
+    void write_data(uint16_t address, uint8_t value);
     uint16_t read_data16(uint16_t address) const;
     void write_data16(uint16_t address, uint16_t value);
 };

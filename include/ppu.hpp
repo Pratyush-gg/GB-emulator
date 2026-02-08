@@ -58,8 +58,6 @@ class PicturePU {
 	static constexpr uint16_t OAM_OFFSET = 0xFE00;
 	static constexpr uint16_t OAM_SIZE = 0xA0;
 
-
-
 	uint8_t clock = 0;
 
 	std::array<uint8_t, VRAM_SIZE> vram = {};
