@@ -37,7 +37,7 @@ FetchContent_MakeAvailable(ImGui-SFML)
 
 # Add executable and sources
 file(GLOB_RECURSE SOURCES "src/*.cpp")
-add_executable(${PROJECT_NAME} ${SOURCES} "src/apu.cpp" "src/audioplayer.cpp")
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE IMGUI_HAS_VIEWPORTS=1 IMGUI_HAS_DOCKING=1)
 
