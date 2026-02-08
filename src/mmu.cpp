@@ -54,10 +54,8 @@ uint8_t MMU::read_data(const uint16_t address) const {
             return ppu->LCD_read(address);
         }
 
-        // TODO : add APU.
-
         if (address >= 0xFF10 && address <= 0xFF3F) {
-            // return apu->readAddr(address);
+             return apu->readAddr(address);
             return 0xFF;
         }
     }
@@ -150,11 +148,10 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         }
 
         if (address >= 0xFF10 && address <= 0xFF3F) {
-            // apu->writeAddr(address, value);
+             apu->writeAddr(address, value);
             return;
         }
 
-        // TODO: Add APU (0xFF10–0xFF3F)
         // std::cerr << "Write to unusable memory: " << std::hex << address << std::endl;
         return;
     }
