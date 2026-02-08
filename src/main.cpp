@@ -25,12 +25,6 @@ int main(int argc, char* argv[]) {
     sf::RenderWindow debugger_window(sf::VideoMode({DEBUG_WIDTH, DEBUG_HEIGHT}), "GB-Debugger");
     sf::RenderWindow game_window(sf::VideoMode({GAME_WIDTH, GAME_HEIGHT}), "GB-Emulator");
 
-    debugger_window.setFramerateLimit(15);
-    game_window.setFramerateLimit(15);
-
-    game_window.setVerticalSyncEnabled(false);
-    debugger_window.setVerticalSyncEnabled(false);
-
     game_window.setPosition(sf::Vector2i(100, 100));
     debugger_window.setPosition(sf::Vector2i(100 + GAME_WIDTH + 100, 400));
 

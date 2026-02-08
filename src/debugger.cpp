@@ -78,11 +78,11 @@ void Debugger::render() {
 
     ImGui::Begin("Main", nullptr , host_window_flags);
 
-    render_disassembly_panel();
-    render_tile_data_panel();
+    // render_disassembly_panel();
+    // render_tile_data_panel();
     render_command_prompt();
-    render_registers_panel();
-    render_hex_view();
+    // render_registers_panel();
+    // render_hex_view();
 
     ImGui::End();
 }
