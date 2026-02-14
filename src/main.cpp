@@ -47,8 +47,7 @@ int main(int argc, char* argv[]) {
 
     init_instructions();
 
-    //std::string inputRom = "C:\\Users\\shawn\\CLionProjects\\GB-emulator\\roms\\Legend of Zelda, The - Link's Awakening (USA, Europe).gb";
-    std::string inputRom = "C:\\Users\\shawn\\CLionProjects\\GB-emulator\\roms\\tests\\interrupt_time\\interrupt_time.gb";
+    std::string inputRom = "C:\\Users\\shawn\\CLionProjects\\GB-emulator\\roms\\Tetris.gb";
     if (argc > 1) inputRom = argv[1];
 
     Debugger debugger(inputRom);

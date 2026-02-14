@@ -28,7 +28,7 @@ class Emulator {
     std::shared_ptr<MMU> bus;
     std::shared_ptr<Cartridge> cart;
     std::shared_ptr<PicturePU> ppu;
-    std::shared_ptr<AudioPU> apu;
+    // std::shared_ptr<AudioPU> apu;
     std::shared_ptr<Timer> timer;
     std::shared_ptr<InterruptHandler> interrupts;
     std::shared_ptr<JoyPad> joypad;
@@ -49,10 +49,6 @@ public:
 
     std::shared_ptr<JoyPad> getJoyPad() {
         return joypad;
-    }
-
-    AudioRingBuffer* getAudioBuffer() {
-        return apu->getAudioBuffer();
     }
 
     const std::array<uint32_t, 160 * 144>& get_emu_video_buffer() const;

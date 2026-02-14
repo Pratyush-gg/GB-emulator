@@ -10,12 +10,12 @@ Emulator::Emulator(const std::string& rom_filename):
     running(true),
     paused(false) {
     cart = std::make_shared<Cartridge>(rom_filename);
-    apu = std::make_shared<AudioPU>();
+    // apu = std::make_shared<AudioPU>();
     interrupts = std::make_shared<InterruptHandler>();
     ppu = std::make_shared<PicturePU>(interrupts, cart);
     joypad = std::make_shared<JoyPad>();
     timer = std::make_shared<Timer>(interrupts);
-    bus = std::make_shared<MMU>(cart, ppu, timer, interrupts, apu, joypad);
+    bus = std::make_shared<MMU>(cart, ppu, timer, interrupts, joypad);
     cpu = std::make_shared<CPU>(bus, interrupts);
 
     interrupts->setCPU(cpu);
@@ -46,7 +46,6 @@ void Emulator::updateState() {
     timer->tick(increment_cycles);
     ppu->ppu_tick(increment_cycles);
     ppu->dma_tick(increment_cycles/4);
-    apu->tick(increment_cycles);
     if (!increment_cycles) {
         std::cout << "CPU stopped." << std::endl;
         this->running = false;

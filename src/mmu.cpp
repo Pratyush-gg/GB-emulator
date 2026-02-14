@@ -55,15 +55,15 @@ uint8_t MMU::read_data(const uint16_t address) const {
         }
 
         if (address >= 0xFF10 && address <= 0xFF3F) {
-             return apu->readMem(address);
+             return apu->readAddr(address);
             return 0xFF;
         }
     }
-    else if (address < HRAM_OFFSET + HRAM_SIZE) {
-        const size_t offset = address - HRAM_OFFSET;
+    if (address < HRAM_OFFSET + HRAM_SIZE) {
+        const uint16_t offset = address - HRAM_OFFSET;
         return hram[offset];
     }
-    else if (address == 0xFFFF) {
+    if (address == 0xFFFF) {
         return this->interrupt->IE;
     }
     return -1;
@@ -148,7 +148,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         }
 
         if (address >= 0xFF10 && address <= 0xFF3F) {
-             apu->writeMem(address, value);
+             apu->writeAddr(address, value);
             return;
         }
 

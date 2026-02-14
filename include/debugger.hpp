@@ -20,7 +20,6 @@ static constexpr int scale = 2.0;
 #include <SFML/Graphics/Texture.hpp>
 
 #include "emu.hpp"
-#include "audio_player.hpp"
 
 struct debuggerInst {
     std::string mnemonic;
@@ -33,8 +32,6 @@ extern debuggerInst instr_table[256];
 class Debugger {
     std::string romFilename;
     std::shared_ptr<Emulator> emu;
-    std::shared_ptr<GBAudioStream> audio_player;
-
     DebugContext debugContext;
     unsigned disassembler_num_lines = 100;
 
