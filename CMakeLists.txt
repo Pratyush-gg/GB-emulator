@@ -41,8 +41,8 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE IMGUI_HAS_VIEWPORTS=1 IMGUI_HAS_DOCKING=1)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics ImGui-SFML::ImGui-SFML)
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics sfml-audio ImGui-SFML::ImGui-SFML)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 

@@ -13,8 +13,9 @@
 Debugger::Debugger(const std::string& filename) :
     romFilename(filename),
     emu(std::make_shared<Emulator>(filename)),
-    debugContext(emu->getDebugContext())
-{
+    debugContext(emu->getDebugContext()) { 
+
+    this->audio_player = std::make_shared<GBAudioStream>();
     std::cout << "Debugger created" << std::endl;
 
     if (!tile_texture.resize({TILE_DATA_WIDTH_PX, TILE_DATA_HEIGHT_PX})) {
@@ -25,6 +26,10 @@ Debugger::Debugger(const std::string& filename) :
 
     // Start the emulator thread right after setup
     emu_thread = std::thread(&Debugger::emulator_thread_loop, this);
+
+    AudioRingBuffer* buffer = emu->getAudioBuffer();
+    audio_player->setRingBuffer(buffer);
+    //audio_player->play();
 }
 
 // The new destructor to safely stop the thread
@@ -78,11 +83,11 @@ void Debugger::render() {
 
     ImGui::Begin("Main", nullptr , host_window_flags);
 
-    // render_disassembly_panel();
-    // render_tile_data_panel();
+    render_disassembly_panel();
+    render_tile_data_panel();
     render_command_prompt();
-    // render_registers_panel();
-    // render_hex_view();
+    render_registers_panel();
+    render_hex_view();
 
     ImGui::End();
 }
