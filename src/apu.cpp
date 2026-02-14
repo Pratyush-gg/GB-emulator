@@ -4,20 +4,68 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 	if (address >= WAVE_PATTERN_RAM_OFFSET && \
 		address < WAVE_PATTERN_RAM_OFFSET + WAVE_PATTERN_RAM_SIZE) {
 		wave_pattern[address - WAVE_PATTERN_RAM_OFFSET] = value;
+		return;
+	}
+
+	if (address == 0xFF26) {
+		AUDENA = value & 0x80;
+		if (!(AUDENA & 0x80)) {
+			AUD1SWEEP = 0;
+			AUD1LEN = 0;
+			AUD1ENV = 0;
+			AUD1LOW = 0;
+			AUD1HIGH = 0;
+			channel1.enabled = false;
+			channel2.enabled = false;
+			channel3.enabled = false;
+			channel4.enabled = false;
+		}
+		return;
+	}
+
+	// APU is off
+	if (!(AUDENA & 0x80)) {
+		return;
 	}
 
 	switch (address) {
 		// master control
 		case 0xFF24: AUDVOL		= value; break;
 		case 0xFF25: AUDTERM	= value; break;
-		case 0XFF26: AUDENA		= value; break;
 
 		// CHANNEL 1
-		case 0xFF10: AUD1SWEEP	= value; break;
-		case 0xFF11: AUD1LEN	= value; break;
-		case 0xFF12: AUD1ENV	= value; break;
-		case 0xFF13: AUD1LOW	= value; break;
-		case 0xFF14: AUD1HIGH	= value; break;
+		case 0xFF10:
+			AUD1SWEE = value;
+			channel1.sweep_shift = value & 0x7;
+			channel1.sweep_period = (value >> 4) & 0x7;
+			channel1.sweep_negate = value & 0x8;
+			break;
+		case 0xFF11:
+			AUD1LEN = value;
+			channel1.length_timer = 64 - (value & 0x3F);
+			channel1.duty_pattern = (value >> 6) & 0x3;
+			break;
+		case 0xFF12:
+			AUD1ENV = value;
+			channel1.envelope_period = value & 0x7;
+			channel1.envelope_increasing = value & 0x8;
+			channel1.initial_volume = (value >> 4) & 0xF;
+			channel1.dac_enabled = (value & 0xF8) != 0;
+			if (!channel1.dac_enabled) {
+				channel1.enabled = false;
+			}
+			break;
+		case 0xFF13:
+			AUD1LOW = value;
+			channel1.frequency = (channel1.frequency & 0xFF00) | value;
+			break;
+		case 0xFF14:
+			AUD1HIGH = value;
+			channel1.frequency = (channel1.frequency & 0x00FF) | ((value & 0x7) << 8);
+			channel1.length_enabled = value & 0x40;
+			if (value & 0x80) {
+				// Trigger the channel
+			}
 
 		// CHANNEL 2
 		case 0xFF16: AUD2LEN	= value; break;

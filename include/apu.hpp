@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include "mmu.hpp"
 #include <atomic>
+
+class MMU;
 
 /*
 	Lock Free audio ring buffer implemented because sfml and other front-ends
@@ -46,18 +47,29 @@ class AudioPU {
 private:
 
 	struct AudioChannel {
-		int timer;
+		bool enabled = false;
+		bool dac_enabled = false;
+		int length_timer = 0;
+		bool length_enabled = false;
+		int initial_volume = 0;
+		int current_volume = 0;
+		int envelope_timer = 0;
+		int envelope_period = 0;
+		bool envelope_increasing = false;
+		int frequency = 0;
+		int timer = 0;
 		virtual float getOutput();	// returns 32 bit float as the amplitude, 
 									// will have to convert this to 16 bit before passing it into SFML
 		virtual void tick();		// for updating the timer to generate waves and stuff
 	};
 
 	struct SquareChannel : AudioChannel {
-		float getOutput() override;
-		void tick() override;
-	};
-
-	struct NoiseChannel : AudioChannel {
+		int sweep_timer = 0;
+		int sweep_period = 0;
+		int sweep_shift = 0;
+		int shadow_frequency = 0;
+		bool sweep_enabled = false;
+		bool sweep_negate = false;
 		float getOutput() override;
 		void tick() override;
 	};
@@ -67,43 +79,49 @@ private:
 		void tick() override;
 	};
 
-	uint8_t AUDVOL;		// FF24 master volume & VIN panning [NR50]
-	uint8_t AUDTERM;	// FF25 sound panning [NR51]
-	uint8_t AUDENA;		// FF26 audio master control [NR52]
+	struct NoiseChannel : AudioChannel {
+		float getOutput() override;
+		void tick() override;
+	};
+
+	uint8_t AUDVOL = 0;		// FF24 master volume & VIN panning [NR50]
+	uint8_t AUDTERM = 0;	// FF25 sound panning [NR51]
+	uint8_t AUDENA = 0;		// FF26 audio master control [NR52]
 
 	// CHANNEL 1
-	uint8_t AUD1SWEEP;	// FF10 channel 1 sweep [NR10]
-	uint8_t AUD1LEN;	// FF11 channel 1 length timier and duty cycle [NR11]
-	uint8_t AUD1ENV;	// FF12 audio channel 1 volume and envelope [NR12]
-	uint8_t AUD1LOW;	// FF13 audio channel 1 period low bits [NR13] WRITE ONLY
-	uint8_t AUD1HIGH;	// FF14 audio channel 1 period high bits [NR14]
+	uint8_t AUD1SWEEP = 0;	// FF10 channel 1 sweep [NR10]
+	uint8_t AUD1LEN = 0;	// FF11 channel 1 length timier and duty cycle [NR11]
+	uint8_t AUD1ENV = 0;	// FF12 audio channel 1 volume and envelope [NR12]
+	uint8_t AUD1LOW = 0;	// FF13 audio channel 1 period low bits [NR13] WRITE ONLY
+	uint8_t AUD1HIGH = 0;	// FF14 audio channel 1 period high bits [NR14]
 
 	// CHANNEL 2
-	uint8_t AUD2LEN;	// FF16 channel 2 length timier and duty cycle [NR21]
-	uint8_t AUD2ENV;	// FF17 audio channel 2 volume and envelope [NR22]
-	uint8_t AUD2LOW;	// FF18 audio channel 2 period low bits [NR23] WRITE ONLY
-	uint8_t AUD2HIGH;	// FF19 audio channel 2 period high bits [NR24]
+	uint8_t AUD2LEN = 0;	// FF16 channel 2 length timier and duty cycle [NR21]
+	uint8_t AUD2ENV = 0;	// FF17 audio channel 2 volume and envelope [NR22]
+	uint8_t AUD2LOW = 0;	// FF18 audio channel 2 period low bits [NR23] WRITE ONLY
+	uint8_t AUD2HIGH = 0;	// FF19 audio channel 2 period high bits [NR24]
 
 	// CHANNEL 3
-	uint8_t AUD3ENA;	// FF1A channel 3 enable [NR30]
-	uint8_t AUD3LEN;	// FF1B channel 3 length timer [NR31] WRITE ONLY
-	uint8_t AUD3LEVEL;	// FF1C channel 3 output level [NR32]
-	uint8_t AUD3LOW;	// FF1D channel 3 period low [NR33] WRITE ONLY
-	uint8_t AUD3HIGH;	// FF1E channel 3 period high & control [NR34]
+	uint8_t AUD3ENA = 0;	// FF1A channel 3 enable [NR30]
+	uint8_t AUD3LEN = 0;	// FF1B channel 3 length timer [NR31] WRITE ONLY
+	uint8_t AUD3LEVEL = 0;	// FF1C channel 3 output level [NR32]
+	uint8_t AUD3LOW = 0;	// FF1D channel 3 period low [NR33] WRITE ONLY
+	uint8_t AUD3HIGH = 0;	// FF1E channel 3 period high & control [NR34]
+
 	static constexpr uint16_t WAVE_PATTERN_RAM_OFFSET = 0xFF30;
 	static constexpr uint8_t WAVE_PATTERN_RAM_SIZE = 0xF;
 	std::array<uint8_t, 16> wave_pattern;
 
 	// CHANNEL 4
-	uint8_t AUD4LEN;	// FF20 channel 4 length timer [NR41] WRITE ONLY
-	uint8_t AUD4ENV;	// FF21 channel 4 volume and envelope [NR42]
-	uint8_t AUD4POLY;	// FF22 channel 4 frequency and randomness [NR43]
-	uint8_t AUD4GO;		// FF23 channel 4 control [NR44]
+	uint8_t AUD4LEN = 0;	// FF20 channel 4 length timer [NR41] WRITE ONLY
+	uint8_t AUD4ENV = 0;	// FF21 channel 4 volume and envelope [NR42]
+	uint8_t AUD4POLY = 0;	// FF22 channel 4 frequency and randomness [NR43]
+	uint8_t AUD4GO = 0;		// FF23 channel 4 control [NR44]
 
 	SquareChannel channel1;
 	SquareChannel channel2;
-	NoiseChannel channel3;
-	WaveChannel channel4;
+	WaveChannel channel3;
+	NoiseChannel channel4;
 
 	AudioRingBuffer masterRingBuffer; // stores the outgoing buffer for any frontend
 

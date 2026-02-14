@@ -2,6 +2,9 @@
 #include "../include/gb_utils.hpp"
 #include "../include/ppu.hpp"
 #include "../include/joypad.hpp"
+#include "../include/interrupt.hpp"
+#include "../include/apu.hpp"
+#include "../include/cart.hpp"
 
 #include <iostream>
 
@@ -55,7 +58,7 @@ uint8_t MMU::read_data(const uint16_t address) const {
         }
 
         if (address >= 0xFF10 && address <= 0xFF3F) {
-             return apu->readAddr(address);
+			return apu->readMem(address);
             return 0xFF;
         }
     }
@@ -148,7 +151,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         }
 
         if (address >= 0xFF10 && address <= 0xFF3F) {
-             apu->writeAddr(address, value);
+			apu->writeMem(address, value);
             return;
         }
 

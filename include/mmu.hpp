@@ -1,4 +1,5 @@
 #pragma once
+
 #include "cart.hpp"
 #include "timer.hpp"
 #include "apu.hpp"
@@ -23,16 +24,18 @@
 // FFFF	FFFF	Interrupt Enable register (IE)
 
 // TODO: Implement all this one by one
-// class AudioPU;
+//class AudioPU;
 class JoyPad;
-
+class InterruptHandler;
 class PicturePU;
+class Cartridge;
+class Timer;
 
 class MMU {
 private:
     std::shared_ptr<Cartridge> cartridge;
     std::shared_ptr<PicturePU> ppu;
-    std::shared_ptr<AudioPU> apu;
+    /*std::shared_ptr<AudioPU> apu;*/
     std::shared_ptr<Timer> timer;
     std::shared_ptr<InterruptHandler> interrupt;
     std::shared_ptr<JoyPad> joypad;
@@ -77,17 +80,9 @@ public:
         std::shared_ptr<PicturePU> _ppu,
         std::shared_ptr<Timer> _timer,
         std::shared_ptr<InterruptHandler> _interrupt,
-        std::shared_ptr<AudioPU> _apu,
+        /*std::shared_ptr<AudioPU> _apu,*/
         std::shared_ptr<JoyPad> _joypad
-        ) : cartridge(std::move(_cartridge)),
-            ppu(std::move(_ppu)),
-            timer(std::move(_timer)),
-            interrupt(std::move(_interrupt)),
-            wram(), hram(), serial_data(),
-            apu(std::move(_apu)),
-			joypad(std::move(_joypad))
-    {
-    }
+    );
 
     uint8_t read_data(uint16_t address) const;
     void write_data(uint16_t address, uint8_t value);
