@@ -24,6 +24,7 @@ public:
 		if (next_head == tail.load()) return false; // buffer overflow
 		buffer[head.load()] = sample;
 		head.store(next_head);
+		return true;
 	}
 
 	bool pop(int16_t &sample) {	// sample is an out-parameter return value is status
