@@ -26,19 +26,13 @@ bool InterruptHandler::interruptCheck(uint16_t address, InterruptType type) {
 }
 
 void InterruptHandler::interruptHandle() {
-	if (InterruptHandler::interruptCheck(0x40, IT_VBLANK)) {
+	if (InterruptHandler::interruptCheck(0x40, IT_VBLANK)) return;
 
-	}
-	else if (InterruptHandler::interruptCheck(0x48, IT_LCD_STAT)) {
+	else if (InterruptHandler::interruptCheck(0x48, IT_LCD_STAT)) return;
 
-	}
-	else if (InterruptHandler::interruptCheck(0x50, IT_TIMER)) {
+	else if (InterruptHandler::interruptCheck(0x50, IT_TIMER)) return;
 
-	}
-	else if (InterruptHandler::interruptCheck(0x58, IT_SERIAL)) {
+	else if (InterruptHandler::interruptCheck(0x58, IT_SERIAL)) return;
 
-	}
-	else if (InterruptHandler::interruptCheck(0x60, IT_JOYPAD)) {
-
-	}
+	else if (InterruptHandler::interruptCheck(0x60, IT_JOYPAD)) return;
 }

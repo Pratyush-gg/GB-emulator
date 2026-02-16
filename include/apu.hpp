@@ -68,6 +68,8 @@ private:
 		int sweep_period = 0;
 		int sweep_shift = 0;
 		int shadow_frequency = 0;
+		int duty_pattern = 0;
+		int duty_position = 0;
 		bool sweep_enabled = false;
 		bool sweep_negate = false;
 		float getOutput() override;
@@ -75,11 +77,18 @@ private:
 	};
 
 	struct WaveChannel : AudioChannel {
+		int position = 0;
+		uint8_t output_level = 0;
+		std::array<uint8_t, 16>* wave_ram = nullptr;
 		float getOutput() override;
 		void tick() override;
 	};
 
 	struct NoiseChannel : AudioChannel {
+		uint16_t lfsr = 0x7FFF; // linear feedback shift register
+		int clock_shift = 0;
+		int divisor_code = 0;
+		bool width_mode = false;
 		float getOutput() override;
 		void tick() override;
 	};
