@@ -64,7 +64,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel1.frequency = (channel1.frequency & 0x00FF) | ((value & 0x7) << 8);
 			channel1.length_enabled = value & 0x40;
 			if (value & 0x80) {
-				// Trigger the channel
+				channel1.trigger();
 			}
 
 		// CHANNEL 2
@@ -92,7 +92,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel2.frequency = (channel2.frequency & 0x00FF) | ((value & 0x07) << 8);
 			channel2.length_enabled = value & 0x40;
 			if (value & 0x80) {
-				// Trigger the channel
+				channel2.trigger();
 			}
 			break;
 
@@ -120,7 +120,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel3.frequency = (channel3.frequency & 0x00FF) | ((value & 0x07) << 8);
 			channel3.length_enabled = value & 0x40;
 			if (value & 0x80) {
-				// Trigger the channel
+				channel3.trigger();
 			}
 			break;
 
@@ -149,7 +149,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			AUD4GO = value;
 			channel4.length_enabled = value & 0x40;
 			if (value & 0x80) {
-				// Trigger the channel
+				channel4.trigger();
 			}
 			break;
 	}
@@ -200,4 +200,143 @@ uint8_t AudioPU::readMem(uint16_t address) const {
 
 		default: return 0xFF;
 	}
+}
+
+void AudioPU::stepFrameSequencer() {
+	frame_sequencer_step = (frame_sequencer_step + 1) % 8;
+
+	if (frame_sequencer_step % 2 == 0) {
+
+		// step length
+		if (channel1.length_enabled && channel1.length_timer > 0) {
+			channel1.length_timer--;
+			if (channel1.length_timer == 0) {
+				channel1.enabled = false;
+			}
+		}
+		if (channel2.length_enabled && channel2.length_timer > 0) {
+			channel2.length_timer--;
+			if (channel2.length_timer == 0) {
+				channel2.enabled = false;
+			}
+		}
+		if (channel3.length_enabled && channel3.length_timer > 0) {
+			channel3.length_timer--;
+			if (channel3.length_timer == 0) {
+				channel3.enabled = false;
+			}
+		}
+		if (channel4.length_enabled && channel4.length_timer > 0) {
+			channel4.length_timer--;
+			if (channel4.length_timer == 0) {
+				channel4.enabled = false;
+			}
+		}
+	}
+
+	if (frame_sequencer_step == 7) {
+		stepEnvelope();
+	}
+
+	if (frame_sequencer_step == 2 || frame_sequencer_step == 6) {
+		stepSweep();
+	}
+}
+
+void AudioPU::stepEnvelope() {
+	if (channel1.envelope_period != 0) {
+		if (channel1.envelope_timer > 0) {
+			channel1.envelope_timer--;
+		}
+		if (channel1.envelope_timer == 0) {
+			channel1.envelope_timer = channel1.envelope_period;
+			if (channel1.envelope_increasing && channel1.current_volume < 15) {
+				channel1.current_volume++;
+			}
+			else if (!channel1.envelope_increasing && channel1.current_volume > 0) {
+				channel1.current_volume--;
+			}
+		}
+	}
+
+	if (channel2.envelope_period != 0) {
+		if (channel2.envelope_timer > 0) {
+			channel2.envelope_timer--;
+		}
+		if (channel2.envelope_timer == 0) {
+			channel2.envelope_timer = channel2.envelope_period;
+			if (channel2.envelope_increasing && channel2.current_volume < 15) {
+				channel2.current_volume++;
+			}
+			else if (!channel2.envelope_increasing && channel2.current_volume > 0) {
+				channel2.current_volume--;
+			}
+		}
+	}
+}
+
+void AudioPU::stepSweep() {
+	if (channel1.sweep_enabled && channel1.sweep_period > 0) {
+		if (channel1.sweep_timer > 0) {
+			channel1.sweep_timer--;
+		}
+		if (channel1.sweep_timer == 0) {
+			if (channel1.sweep_period > 0) {
+			channel1.sweep_timer = channel1.sweep_period;
+			}
+			else {
+				channel1.sweep_timer = 8;
+			}
+			int new_freq = channel1.shadow_frequency >> channel1.sweep_shift;
+			if (channel1.sweep_negate) {
+				new_freq = channel1.shadow_frequency - new_freq;
+			}
+			else {
+				new_freq = channel1.shadow_frequency + new_freq;
+				if (new_freq > 2047) {
+					channel1.enabled = false;
+				}
+			}
+
+			if (new_freq <= 2047 && channel1.sweep_shift > 0) {
+				channel1.shadow_frequency = new_freq;
+				channel1.frequency = new_freq;
+
+				AUD1LOW = new_freq & 0xFF;
+				AUD1HIGH = (AUD1HIGH & 0xF8) | ((new_freq >> 8) & 0x07);
+			}
+		}
+	}
+}
+
+void AudioPU::SquareChannel::trigger() {
+	enabled = true;
+	if (length_timer == 0) {
+		length_timer = 64;
+	}
+	timer = (2048 - frequency) * 4;
+	current_volume = initial_volume;
+	envelope_timer = envelope_period;
+	shadow_frequency = frequency;
+}
+
+void AudioPU::WaveChannel::trigger() {
+	enabled = true;
+	if (length_timer == 0) {
+		length_timer = 256;
+	}
+	timer = (2048 - frequency) * 2;
+	position = 0;
+}
+
+void AudioPU::NoiseChannel::trigger() {
+	enabled = true;
+	if (length_timer == 0) {
+		length_timer = 64;
+	}
+	int divisors[8] = {8, 16, 32, 48, 64, 80, 96, 112};
+	timer = divisors[divisor_code] << clock_shift;
+	lfsr = 0x7FFF;
+	current_volume = initial_volume;
+	envelope_timer = envelope_period;
 }

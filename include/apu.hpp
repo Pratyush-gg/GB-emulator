@@ -61,6 +61,7 @@ private:
 		virtual float getOutput();	// returns 32 bit float as the amplitude, 
 									// will have to convert this to 16 bit before passing it into SFML
 		virtual void tick();		// for updating the timer to generate waves and stuff
+		virtual void trigger();
 	};
 
 	struct SquareChannel : AudioChannel {
@@ -74,6 +75,7 @@ private:
 		bool sweep_negate = false;
 		float getOutput() override;
 		void tick() override;
+		void trigger() override;
 	};
 
 	struct WaveChannel : AudioChannel {
@@ -82,6 +84,7 @@ private:
 		std::array<uint8_t, 16>* wave_ram = nullptr;
 		float getOutput() override;
 		void tick() override;
+		void trigger() override;
 	};
 
 	struct NoiseChannel : AudioChannel {
@@ -91,6 +94,7 @@ private:
 		bool width_mode = false;
 		float getOutput() override;
 		void tick() override;
+		void trigger() override;
 	};
 
 	uint8_t AUDVOL = 0;		// FF24 master volume & VIN panning [NR50]
@@ -133,6 +137,14 @@ private:
 	NoiseChannel channel4;
 
 	AudioRingBuffer masterRingBuffer; // stores the outgoing buffer for any frontend
+
+	int frame_sequencer_step = 0;
+	int frame_sequencer_timer = 0;
+	int sample_timer = 0;
+
+	void stepFrameSequencer();
+	void stepEnvelope();
+	void stepSweep();
 
 public:
 	void tick(); // update state on timer tick
