@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <atomic>
+#include <vector>
+#include <array>
 
 class MMU;
 
@@ -58,10 +60,10 @@ private:
 		bool envelope_increasing = false;
 		int frequency = 0;
 		int timer = 0;
-		virtual float getOutput();	// returns 32 bit float as the amplitude, 
+		virtual uint8_t getOutput() = 0;
 									// will have to convert this to 16 bit before passing it into SFML
-		virtual void tick();		// for updating the timer to generate waves and stuff
-		virtual void trigger();
+		virtual void tick(unsigned int cycles) = 0;		// for updating the timer to generate waves and stuff
+		virtual void trigger() = 0;
 	};
 
 	struct SquareChannel : AudioChannel {
@@ -73,8 +75,8 @@ private:
 		int duty_position = 0;
 		bool sweep_enabled = false;
 		bool sweep_negate = false;
-		float getOutput() override;
-		void tick() override;
+		uint8_t getOutput() override;
+		void tick(unsigned int cycles) override;
 		void trigger() override;
 	};
 
@@ -82,8 +84,8 @@ private:
 		int position = 0;
 		uint8_t output_level = 0;
 		std::array<uint8_t, 16>* wave_ram = nullptr;
-		float getOutput() override;
-		void tick() override;
+		uint8_t getOutput() override;
+		void tick(unsigned int cycles) override;
 		void trigger() override;
 	};
 
@@ -92,8 +94,8 @@ private:
 		int clock_shift = 0;
 		int divisor_code = 0;
 		bool width_mode = false;
-		float getOutput() override;
-		void tick() override;
+		uint8_t getOutput() override;
+		void tick(unsigned int cycles) override;
 		void trigger() override;
 	};
 
@@ -147,7 +149,11 @@ private:
 	void stepSweep();
 
 public:
-	void tick(); // update state on timer tick
+	AudioPU() : masterRingBuffer(4096) {}
+	void tick(unsigned int cycles);
 	void writeMem(uint16_t address, uint8_t value);
 	uint8_t readMem(uint16_t address) const;
+	AudioRingBuffer& getAudioBuffer() {
+		return masterRingBuffer;
+	}
 };

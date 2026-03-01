@@ -3,14 +3,55 @@
 #include "imgui.h"
 #include "../include/emu.hpp"
 #include "../include/instructions.hpp"
+#include "../include/apu.hpp"
 
 #include "SFML/Graphics.hpp"
+#include "SFML/Audio.hpp"
 #include <iostream>
 #include <array>
 #include <optional>
 
 #include "ppu.hpp"
+#include "apu.hpp"
 #include "../fonts/ttf/JetBrainsMono-Medium.h"
+
+class SoundStream : public sf::SoundStream {
+private:
+    AudioRingBuffer& ringBuffer;
+    std::vector<int16_t> tempBuffer;
+
+public:
+    SoundStream(AudioRingBuffer& buffer) : ringBuffer(buffer) {
+		initialize(1, 44100, { sf::SoundChannel::Mono });
+        tempBuffer.resize(4096);
+    }
+
+protected:
+    bool onGetData(Chunk& data) override {
+        size_t count = 0;
+        int16_t sample;
+
+        while (count < 512) {
+            if (ringBuffer.pop(sample)) {
+                tempBuffer[count++] = sample;
+            }
+            else {
+                break;
+            }
+        }
+
+        if (count == 0) {
+            tempBuffer[0] = 0;
+            count = 1;
+        }
+
+        data.samples = tempBuffer.data();
+        data.sampleCount = count;
+        return true;
+    }
+
+    void onSeek(sf::Time timeOffset) override {}
+};
 
 int main(int argc, char* argv[]) {
 
@@ -47,10 +88,13 @@ int main(int argc, char* argv[]) {
 
     init_instructions();
 
-    std::string inputRom = "C:\\Users\\shawn\\CLionProjects\\GB-emulator\\roms\\Tetris.gb";
+    std::string inputRom = "C:\\Pratyush\\study\\GB-emulator\\roms\\Dr. Mario(World).gb";
     if (argc > 1) inputRom = argv[1];
 
     Debugger debugger(inputRom);
+
+	SoundStream audio_stream(debugger.getAPU()->getAudioBuffer());
+	audio_stream.play();
 
     sf::Texture game_texture;
 

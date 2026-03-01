@@ -1,5 +1,10 @@
 #include "../include/apu.hpp"
 
+constexpr int FRAME_SEQUENCER_CLOCKS = 8192;
+constexpr int SAMPLE_RATE = 44100;
+constexpr int CLOCK_SPEED = 4194304;
+constexpr int CLOCKS_PER_SAMPLE = CLOCK_SPEED / SAMPLE_RATE;
+
 void AudioPU::writeMem(uint16_t address, uint8_t value) {
 	if (address >= WAVE_PATTERN_RAM_OFFSET && \
 		address < WAVE_PATTERN_RAM_OFFSET + WAVE_PATTERN_RAM_SIZE) {
@@ -35,7 +40,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 
 		// CHANNEL 1
 		case 0xFF10:
-			AUD1SWEE = value;
+			AUD1SWEEP = value;
 			channel1.sweep_shift = value & 0x7;
 			channel1.sweep_period = (value >> 4) & 0x7;
 			channel1.sweep_negate = value & 0x8;
@@ -142,7 +147,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 		case 0xFF22:
 			AUD4POLY = value;
 			channel4.clock_shift = (value >> 4) & 0x0F;
-			channel4.width_shift = (value >> 3) & 0x01;
+			channel4.width_mode = (value >> 3) & 0x01;
 			channel4.divisor_code = value & 0x07;
 			break;
 		case 0xFF23:
@@ -339,4 +344,100 @@ void AudioPU::NoiseChannel::trigger() {
 	lfsr = 0x7FFF;
 	current_volume = initial_volume;
 	envelope_timer = envelope_period;
+}
+
+void AudioPU::tick(unsigned int cycles) {
+	if (!(AUDENA & 0x80)) {
+		return;
+	}
+
+	frame_sequencer_timer++;
+	if (frame_sequencer_timer >= FRAME_SEQUENCER_CLOCKS) {
+		frame_sequencer_timer -= FRAME_SEQUENCER_CLOCKS;
+		stepFrameSequencer();
+	}
+
+	channel1.tick(cycles);
+	channel2.tick(cycles);
+	channel3.tick(cycles);
+	channel4.tick(cycles);
+
+	sample_timer += cycles;
+	if (sample_timer >= CLOCKS_PER_SAMPLE) {
+		sample_timer -= CLOCKS_PER_SAMPLE;
+
+		int sample = 0;
+		sample += (channel1.enabled && channel1.dac_enabled) ? channel1.getOutput() : 0;
+		sample += (channel2.enabled && channel2.dac_enabled) ? channel2.getOutput() : 0;
+		sample += (channel3.enabled && channel3.dac_enabled) ? channel3.getOutput() : 0;
+		sample += (channel4.enabled && channel4.dac_enabled) ? channel4.getOutput() : 0;
+
+		float normalize = sample / 30.0f;
+		normalize -= 1.0f;
+
+		normalize *= 0.5f; // adjust volume
+
+		int16_t output_sample = static_cast<int16_t>(normalize * 32767.0f);
+		masterRingBuffer.push(output_sample);
+	}
+}
+
+void AudioPU::SquareChannel::tick(unsigned int cycles) {
+	if (!enabled) return;
+	timer -= cycles;
+	while (timer <= 0) {
+		timer += (2048 - frequency) * 4;
+		duty_position = (duty_position + 1) % 8;
+	}
+}
+
+void AudioPU::WaveChannel::tick(unsigned int cycles) {
+	if (!enabled) return;
+	timer -= cycles;
+	while (timer <= 0) {
+		timer += (2048 - frequency) * 2;
+		position = (position + 1) % 32;
+	}
+}
+
+void AudioPU::NoiseChannel::tick(unsigned int cycles) {
+	if (!enabled) return;
+	timer -= cycles;
+	while (timer <= 0) {
+		int divisors[8] = { 8, 16, 32, 48, 64, 80, 96, 112 };
+		timer += divisors[divisor_code] << clock_shift;
+
+		int bit = (lfsr & 0x1) ^ ((lfsr >> 1) & 0x1);
+		lfsr >>= 1;
+		lfsr |= (bit << 14);
+		if (width_mode) {
+			lfsr &= ~0x40;
+			lfsr |= (bit << 6);
+		}
+	}
+}
+
+uint8_t AudioPU::SquareChannel::getOutput() {
+	if (!enabled || !dac_enabled) return 0;
+	const uint8_t duties[4] = { 0x01, 0x81, 0x87, 0x7E };
+	bool output = (duties[duty_pattern] >> duty_position) & 0x1;
+	return output ? current_volume : 0;
+}
+
+uint8_t AudioPU::WaveChannel::getOutput() {
+	if (!enabled || !dac_enabled || wave_ram == nullptr) {
+		return 0;
+	}
+	uint8_t byte = (*wave_ram)[position / 2];
+	uint8_t sample = (position % 2 == 0) ? (byte >> 4) : (byte & 0x0F);
+
+	if (output_level == 0) {
+		return 0;
+	}
+	return sample >> (output_level - 1);
+}
+
+uint8_t AudioPU::NoiseChannel::getOutput() {
+	if (!enabled || !dac_enabled) return 0;
+	return (lfsr & 0x1) ? 0 : current_volume;
 }

@@ -32,6 +32,7 @@ extern debuggerInst instr_table[256];
 class Debugger {
     std::string romFilename;
     std::shared_ptr<Emulator> emu;
+    
     DebugContext debugContext;
     unsigned disassembler_num_lines = 100;
 
@@ -90,6 +91,10 @@ public:
     ~Debugger();
 
     void runContinue();
+
+    std::shared_ptr<AudioPU> getAPU() {
+        return emu->getAPU();
+    }
 
     uint32_t getCurrentFrame() const;
     void render();
