@@ -76,7 +76,16 @@ int main(int argc, char* argv[]) {
 
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
-    io.Fonts->AddFontFromMemoryTTF(__JetBrainsMono_Medium_ttf, __JetBrainsMono_Medium_ttf_len, 18.0f);
+    
+    ImFontConfig fontConfig;
+    fontConfig.FontDataOwnedByAtlas = false;
+
+    io.Fonts->AddFontFromMemoryTTF(
+        (void*)__JetBrainsMono_Medium_ttf,
+        __JetBrainsMono_Medium_ttf_len,
+        18.0f,
+        &fontConfig
+    );
 
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -88,7 +97,7 @@ int main(int argc, char* argv[]) {
 
     init_instructions();
 
-    std::string inputRom = "C:\\Pratyush\\study\\GB-emulator\\roms\\Dr. Mario(World).gb";
+    std::string inputRom = "C:\\Pratyush\\study\\GB-emulator\\roms\\tests\\dmg_sound\\rom_singles\\02-len ctr.gb";
     if (argc > 1) inputRom = argv[1];
 
     Debugger debugger(inputRom);

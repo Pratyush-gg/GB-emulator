@@ -22,6 +22,13 @@ private:
 public:
 	AudioRingBuffer(size_t size) : buffer(size), capacity(size) {}
 
+	size_t getReadAvailable() const {
+		size_t h = head.load();
+		size_t t = tail.load();
+		if (h >= t) return h - t;
+		else return capacity - (t - h);
+	}
+
 	bool push(int16_t sample) {
 		size_t next_head = (head.load() + 1) % capacity;
 		if (next_head == tail.load()) return false; // buffer overflow
@@ -124,7 +131,7 @@ private:
 	uint8_t AUD3HIGH = 0;	// FF1E channel 3 period high & control [NR34]
 
 	static constexpr uint16_t WAVE_PATTERN_RAM_OFFSET = 0xFF30;
-	static constexpr uint8_t WAVE_PATTERN_RAM_SIZE = 0xF;
+	static constexpr uint8_t WAVE_PATTERN_RAM_SIZE = 0x10;
 	std::array<uint8_t, 16> wave_pattern;
 
 	// CHANNEL 4
@@ -149,7 +156,9 @@ private:
 	void stepSweep();
 
 public:
-	AudioPU() : masterRingBuffer(4096) {}
+	AudioPU() : masterRingBuffer(4096) {
+		channel3.wave_ram = &wave_pattern;
+	}
 	void tick(unsigned int cycles);
 	void writeMem(uint16_t address, uint8_t value);
 	uint8_t readMem(uint16_t address) const;

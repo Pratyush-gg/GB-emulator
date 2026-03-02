@@ -141,7 +141,7 @@ int CPU::cpu_step() {
 
     if (interruptHandler->IME) {
         interruptHandler->interruptHandle();
-        this->EI_Triggered = false;
+		num_cycles += 20;
     }
 
     if (this->EI_Triggered) {

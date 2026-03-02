@@ -13,11 +13,9 @@ bool InterruptHandler::interruptCheck(uint16_t address, InterruptType type) {
 	if ((IE & type) && (IF & type)) {
 		if (std::shared_ptr<CPU> tempCPU = cpu.lock()) {
 			tempCPU->serviceInterrupt(address);
-		}
-		IF &= ~type;
-		if (std::shared_ptr<CPU> tempCPU = cpu.lock()) {
 			tempCPU->halted = false;
 		}
+		IF &= ~type;
 		IME = false;
 
 		return true;
@@ -25,14 +23,20 @@ bool InterruptHandler::interruptCheck(uint16_t address, InterruptType type) {
 	return false;
 }
 
-void InterruptHandler::interruptHandle() {
-	if (InterruptHandler::interruptCheck(0x40, IT_VBLANK)) return;
+bool InterruptHandler::hasPendingInterrupt() const {
+	return (IE & IF & 0x1F) != 0;
+}
 
-	else if (InterruptHandler::interruptCheck(0x48, IT_LCD_STAT)) return;
+bool InterruptHandler::interruptHandle() {
+	if (InterruptHandler::interruptCheck(0x40, IT_VBLANK)) return true;
 
-	else if (InterruptHandler::interruptCheck(0x50, IT_TIMER)) return;
+	if (InterruptHandler::interruptCheck(0x48, IT_LCD_STAT)) return true;
 
-	else if (InterruptHandler::interruptCheck(0x58, IT_SERIAL)) return;
+	if (InterruptHandler::interruptCheck(0x50, IT_TIMER)) return true;
 
-	else if (InterruptHandler::interruptCheck(0x60, IT_JOYPAD)) return;
+	if (InterruptHandler::interruptCheck(0x58, IT_SERIAL)) return true;
+
+	if (InterruptHandler::interruptCheck(0x60, IT_JOYPAD)) return true;
+
+	return false;
 }

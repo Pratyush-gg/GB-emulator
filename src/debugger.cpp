@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <sstream>
 #include <array>
+#include <thread>
 #include <SFML/Graphics/Color.hpp>
 
 #include "imgui.h"
@@ -42,12 +43,17 @@ uint32_t Debugger::getCurrentFrame() const {
 void Debugger::emulator_thread_loop() {
     while (!shutdown_thread) {
         if (emu_running) {
+            if (emu->getAPU()->getAudioBuffer().getReadAvailable() > 2048) {
+				// If the audio buffer is half full, pause the emulator to let the UI thread catch up and consume some audio samples.
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+			}
             // Lock once before running a batch of instructions.
             std::lock_guard<std::mutex> lock(emu_mutex);
 
             // A "timeslice" or batch size. You can tune this number.
             // It's the number of instructions to run before releasing the lock.
-            const int instructions_per_slice = 1;
+            const int instructions_per_slice = 100;
 
             for (int i = 0; i < instructions_per_slice; ++i) {
                 if (breakpoints.count(this->getCurrentInstruction())) {
@@ -57,10 +63,9 @@ void Debugger::emulator_thread_loop() {
                 emu->run_one();
             }
         }
-
-        // Briefly pause to allow the UI thread a chance to acquire the lock.
-        // This prevents the emulator thread from hogging the CPU.
-        std::this_thread::yield();
+        else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
     }
 }
 
