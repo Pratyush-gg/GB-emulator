@@ -18,36 +18,47 @@ JoyPad::joypad_state* JoyPad::joypad_get_state() {
 }
 
 uint8_t JoyPad::joypad_get_output() {
-    uint8_t output = 0xCF;
+    uint8_t output = 0xC0; // bits 7-6 are always 1
 
-    if (!joypad_button_select()) {
+    if (button_select) {
+        output |= 0x20;
+    }
+    if (direction_select) {
+        output |= 0x10;
+    }
+
+    // Default bits 3-0 to 1 (released)
+    output |= 0x0F;
+
+    if (!button_select) {
         if (joypad_get_state()->start) {
             output &= ~(1 << 3);
         }
         if (joypad_get_state()->select) {
             output &= ~(1 << 2);
         }
-        if (joypad_get_state()->a) {
-            output &= ~(1 << 0);
-        }
         if (joypad_get_state()->b) {
             output &= ~(1 << 1);
         }
+        if (joypad_get_state()->a) {
+            output &= ~(1 << 0);
+        }
     }
 
-    if (!joypad_direction_select()) {
+    if (!direction_select) {
+        if (joypad_get_state()->down) {
+            output &= ~(1 << 3);
+        }
+        if (joypad_get_state()->up) {
+            output &= ~(1 << 2);
+        }
         if (joypad_get_state()->left) {
             output &= ~(1 << 1);
         }
         if (joypad_get_state()->right) {
             output &= ~(1 << 0);
         }
-        if (joypad_get_state()->up) {
-            output &= ~(1 << 2);
-        }
-        if (joypad_get_state()->down) {
-            output &= ~(1 << 3);
-        }
     }
+
     return output;
 }

@@ -44,6 +44,11 @@ public:
 		tail.store(next_tail);
 		return true;
 	}
+
+	void clear() {
+		head.store(0);
+		tail.store(0);
+	}
 };
 
 struct ChannelState {
@@ -93,6 +98,8 @@ private:
 		int position = 0;
 		uint8_t output_level = 0;
 		std::array<uint8_t, 16>* wave_ram = nullptr;
+		uint64_t last_fetch_cycle = 0;
+		const uint64_t* parent_total_cycles = nullptr;
 		uint8_t getOutput() override;
 		void tick(unsigned int cycles) override;
 		void trigger() override;
@@ -160,12 +167,14 @@ private:
 public:
 	AudioPU() : masterRingBuffer(4096) {
 		channel3.wave_ram = &wave_pattern;
+		channel3.parent_total_cycles = &total_cycles;
 		channel1.has_sweep = true;
 	}
 	void tick(unsigned int cycles);
 	void divApuTick();
 	void writeMem(uint16_t address, uint8_t value);
 	uint8_t readMem(uint16_t address) const;
+	void reset();
 	AudioRingBuffer& getAudioBuffer() {
 		return masterRingBuffer;
 	}

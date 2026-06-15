@@ -87,6 +87,7 @@ private:
     std::atomic<bool> shutdown_thread = false;    // Signals the thread to exit cleanly
 
 public:
+    bool exit_requested = false;
     explicit Debugger(const std::string& filename);
     ~Debugger();
 

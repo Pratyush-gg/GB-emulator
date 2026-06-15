@@ -2,27 +2,7 @@
 #include <fstream>
 #include <iostream>
 
-namespace {
-std::ofstream& apuLenTrace() {
-	static std::ofstream file("apu_len_trace.log", std::ios::out | std::ios::trunc);
-	return file;
-}
-
-void traceLenEvent(const char* tag, int ch, int step, int len, bool len_en, bool en) {
-	static int traceCount = 0;
-	if (traceCount >= 1500) {
-		return;
-	}
-	apuLenTrace() << tag
-		<< " ch=" << ch
-		<< " step=" << step
-		<< " len=" << len
-		<< " len_en=" << (len_en ? 1 : 0)
-		<< " en=" << (en ? 1 : 0)
-		<< '\n';
-	traceCount++;
-}
-}
+#define traceLenEvent(...) ((void)0)
 
 constexpr int FRAME_SEQUENCER_CLOCKS = 8192;
 constexpr int SAMPLE_RATE = 44100;
@@ -31,12 +11,18 @@ constexpr int CLOCKS_PER_SAMPLE = CLOCK_SPEED / SAMPLE_RATE;
 
 void AudioPU::writeMem(uint16_t address, uint8_t value) {
 	if (address >= WAVE_PATTERN_RAM_OFFSET && address < WAVE_PATTERN_RAM_OFFSET + WAVE_PATTERN_RAM_SIZE) {
-		wave_pattern[address - WAVE_PATTERN_RAM_OFFSET] = value;
+		if (channel3.enabled) {
+			if (total_cycles >= channel3.last_fetch_cycle && (total_cycles - channel3.last_fetch_cycle == 0)) {
+				wave_pattern[channel3.position / 2] = value;
+			}
+		} else {
+			wave_pattern[address - WAVE_PATTERN_RAM_OFFSET] = value;
+		}
 		return;
 	}
 
 	if (address == 0xFF26) {
-		std::cout << "[DEBUG_NR52] write value=" << (int)value << " (prev AUDENA=" << (int)AUDENA << ") step=" << frame_sequencer_step << std::endl;
+
 		bool was_off = !(AUDENA & 0x80);
 		AUDENA = value & 0x80;
 		if (!(AUDENA & 0x80)) {
@@ -134,7 +120,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 
 	// APU is off — on DMG, only NRx1 length load registers are writable
 	if (!(AUDENA & 0x80)) {
-		std::cout << "[DEBUG_APU_OFF_WRITE] address=0x" << std::hex << address << " value=0x" << (int)value << std::dec << std::endl;
+
 		switch (address) {
 			case 0xFF11: // NR11 - CH1 length
 				AUD1LEN = value & 0x3F;
@@ -197,10 +183,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel1.frequency = (channel1.frequency & 0xFF00) | value;
 			break;
 		case 0xFF14: {
-			std::cout << "[DEBUG_NR14] value=" << (int)value << " length_timer=" << (int)channel1.length_timer << " step=" << frame_sequencer_step << " AUDENA=" << (int)AUDENA << std::endl;
-			if (value & 0x80) {
-				std::cout << "[DEBUG_APU] total_cycles=" << total_cycles << " write NR14=" << (int)value << " (trigger) step=" << frame_sequencer_step << " len=" << channel1.length_timer << " len_en=" << (channel1.length_enabled ? 1 : 0) << std::endl;
-			}
+
 			AUD1HIGH = value;
 			channel1.frequency = (channel1.frequency & 0x00FF) | ((value & 0x7) << 8);
 			bool prev_length_enabled = channel1.length_enabled;
@@ -248,7 +231,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel2.frequency = (channel2.frequency & 0xFF00) | value;
 			break;
 		case 0xFF19: {
-			std::cout << "[DEBUG_NR24] value=" << (int)value << " length_timer=" << (int)channel2.length_timer << " step=" << frame_sequencer_step << std::endl;
+
 			AUD2HIGH = value;
 			channel2.frequency = (channel2.frequency & 0x00FF) | ((value & 0x07) << 8);
 			bool prev_length_enabled2 = channel2.length_enabled;
@@ -297,7 +280,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel3.frequency = (channel3.frequency & 0x0700) | value;
 			break;
 		case 0xFF1E: {
-			std::cout << "[DEBUG_NR34] value=" << (int)value << " length_timer=" << (int)channel3.length_timer << " step=" << frame_sequencer_step << std::endl;
+
 			AUD3HIGH = value;
 			channel3.frequency = (channel3.frequency & 0x00FF) | ((value & 0x07) << 8);
 			bool prev_length_enabled3 = channel3.length_enabled;
@@ -316,6 +299,20 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 					channel3.length_timer = 256;
 					if (channel3.length_enabled && (frame_sequencer_step % 2 == 0)) {
 						channel3.length_timer--;
+					}
+				}
+				if (channel3.enabled) {
+					if (channel3.timer == 2) {
+						int corr_pos = (channel3.position + 1) % 32;
+						int byte_index = corr_pos / 2;
+						if (byte_index < 4) {
+							wave_pattern[0] = wave_pattern[byte_index];
+						} else {
+							int block_start = (byte_index / 4) * 4;
+							for (int i = 0; i < 4; i++) {
+								wave_pattern[i] = wave_pattern[block_start + i];
+							}
+						}
 					}
 				}
 				channel3.trigger();
@@ -347,7 +344,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel4.divisor_code = value & 0x07;
 			break;
 		case 0xFF23: {
-			std::cout << "[DEBUG_NR44] value=" << (int)value << " length_timer=" << (int)channel4.length_timer << " step=" << frame_sequencer_step << std::endl;
+
 			AUD4GO = value;
 			bool prev_length_enabled4 = channel4.length_enabled;
 			channel4.length_enabled = value & 0x40;
@@ -378,6 +375,12 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 uint8_t AudioPU::readMem(uint16_t address) const {
 	if (address >= WAVE_PATTERN_RAM_OFFSET && \
 		address < WAVE_PATTERN_RAM_OFFSET + WAVE_PATTERN_RAM_SIZE) {
+		if (channel3.enabled) {
+			if (total_cycles >= channel3.last_fetch_cycle && (total_cycles - channel3.last_fetch_cycle == 0)) {
+				return wave_pattern[channel3.position / 2];
+			}
+			return 0xFF;
+		}
 		return wave_pattern[address - WAVE_PATTERN_RAM_OFFSET];
 	}
 
@@ -583,8 +586,11 @@ void AudioPU::SquareChannel::trigger() {
 
 void AudioPU::WaveChannel::trigger() {
 	enabled = dac_enabled;
-	timer = (2048 - frequency) * 2;
+	timer = (2048 - frequency) * 2 + 6;
 	position = 0;
+	if (parent_total_cycles) {
+		last_fetch_cycle = *parent_total_cycles;
+	}
 }
 
 void AudioPU::NoiseChannel::trigger() {
@@ -655,8 +661,12 @@ void AudioPU::WaveChannel::tick(unsigned int cycles) {
 	if (!enabled) return;
 	timer -= cycles;
 	while (timer <= 0) {
-		timer += (2048 - frequency) * 2;
+		int period = (2048 - frequency) * 2;
+		timer += period;
 		position = (position + 1) % 32;
+		if (parent_total_cycles) {
+			last_fetch_cycle = *parent_total_cycles - (period - timer);
+		}
 	}
 }
 
@@ -700,4 +710,44 @@ uint8_t AudioPU::WaveChannel::getOutput() {
 uint8_t AudioPU::NoiseChannel::getOutput() {
 	if (!enabled || !dac_enabled) return 0;
 	return (lfsr & 0x1) ? 0 : current_volume;
+}
+
+void AudioPU::reset() {
+	AUDVOL = 0;
+	AUDTERM = 0;
+	AUDENA = 0;
+	AUD1SWEEP = 0;
+	AUD1LEN = 0;
+	AUD1ENV = 0;
+	AUD1LOW = 0;
+	AUD1HIGH = 0;
+	AUD2LEN = 0;
+	AUD2ENV = 0;
+	AUD2LOW = 0;
+	AUD2HIGH = 0;
+	AUD3ENA = 0;
+	AUD3LEN = 0;
+	AUD3LEVEL = 0;
+	AUD3LOW = 0;
+	AUD3HIGH = 0;
+	AUD4LEN = 0;
+	AUD4ENV = 0;
+	AUD4POLY = 0;
+	AUD4GO = 0;
+
+	channel1 = SquareChannel();
+	channel2 = SquareChannel();
+	channel3 = WaveChannel();
+	channel4 = NoiseChannel();
+
+	channel3.wave_ram = &wave_pattern;
+	channel3.parent_total_cycles = &total_cycles;
+	channel1.has_sweep = true;
+
+	wave_pattern.fill(0);
+	masterRingBuffer.clear();
+
+	frame_sequencer_step = 7;
+	sample_timer = 0;
+	total_cycles = 0;
 }

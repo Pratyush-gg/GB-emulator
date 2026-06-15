@@ -611,34 +611,160 @@ void PicturePU::LCD_write(uint16_t address, const uint8_t value) {
 	}
 }
 
+static inline uint16_t read_oam_u16(const uint8_t *oam, int offset) {
+	return oam[offset] | (oam[offset + 1] << 8);
+}
+
+static inline void write_oam_u16(uint8_t *oam, int offset, uint16_t val) {
+	oam[offset] = val & 0xFF;
+	oam[offset + 1] = (val >> 8) & 0xFF;
+}
+
+static inline uint16_t bitwise_glitch(uint16_t a, uint16_t b, uint16_t c) {
+	return ((a ^ c) & (b ^ c)) ^ c;
+}
+
+static inline uint16_t bitwise_glitch_read(uint16_t a, uint16_t b, uint16_t c) {
+	return b | (a & c);
+}
+
+static inline uint16_t bitwise_glitch_read_secondary(uint16_t a, uint16_t b, uint16_t c, uint16_t d) {
+	return (b & (a | c | d)) | (a & c & d);
+}
+
+static inline uint16_t bitwise_glitch_tertiary_read_1(uint16_t a, uint16_t b, uint16_t c, uint16_t d, uint16_t e) {
+	return c | (a & b & d & e);
+}
+
+static inline uint16_t bitwise_glitch_tertiary_read_2(uint16_t a, uint16_t b, uint16_t c, uint16_t d, uint16_t e) {
+	return (c & (a | b | d | e)) | (a & b & d & e);
+}
+
+static inline uint16_t bitwise_glitch_tertiary_read_3(uint16_t a, uint16_t b, uint16_t c, uint16_t d, uint16_t e) {
+	return (c & (a | b | d | e)) | (b & d & e);
+}
+
+static inline uint16_t bitwise_glitch_quaternary_read_dmg(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
+                                                          uint16_t e, uint16_t f, uint16_t g, uint16_t h) {
+	return (e & (h | g | (~d & f) | c | b)) | (c & g & h);
+}
+
+typedef uint16_t (*tertiary_op_t)(uint16_t, uint16_t, uint16_t, uint16_t, uint16_t);
+
+static void oam_bug_secondary_read_corruption(uint8_t *oam, int accessed_oam_row) {
+	if (accessed_oam_row < 0x98) {
+		uint16_t base_minus_8 = read_oam_u16(oam, accessed_oam_row - 16);
+		uint16_t base_minus_4 = read_oam_u16(oam, accessed_oam_row - 8);
+		uint16_t base_0 = read_oam_u16(oam, accessed_oam_row);
+		uint16_t base_minus_2 = read_oam_u16(oam, accessed_oam_row - 4);
+
+		uint16_t corrupted_val = bitwise_glitch_read_secondary(base_minus_8, base_minus_4, base_0, base_minus_2);
+		write_oam_u16(oam, accessed_oam_row - 8, corrupted_val);
+
+		for (int i = 0; i < 8; i++) {
+			oam[accessed_oam_row - 16 + i] = oam[accessed_oam_row - 8 + i];
+		}
+	}
+}
+
+static void oam_bug_quaternary_read_corruption(uint8_t *oam, int accessed_oam_row) {
+	if (accessed_oam_row < 0x98) {
+		uint16_t oam_0 = read_oam_u16(oam, 0);
+		uint16_t base_0 = read_oam_u16(oam, accessed_oam_row);
+		uint16_t base_minus_2 = read_oam_u16(oam, accessed_oam_row - 4);
+		uint16_t base_minus_3 = read_oam_u16(oam, accessed_oam_row - 6);
+		uint16_t base_minus_4 = read_oam_u16(oam, accessed_oam_row - 8);
+		uint16_t base_minus_7 = read_oam_u16(oam, accessed_oam_row - 14);
+		uint16_t base_minus_8 = read_oam_u16(oam, accessed_oam_row - 16);
+		uint16_t base_minus_16 = read_oam_u16(oam, accessed_oam_row - 32);
+
+		uint16_t corrupted_val = bitwise_glitch_quaternary_read_dmg(
+			oam_0, base_0, base_minus_2, base_minus_3, base_minus_4, base_minus_7, base_minus_8, base_minus_16
+		);
+		write_oam_u16(oam, accessed_oam_row - 8, corrupted_val);
+
+		for (int i = 0; i < 8; i++) {
+			uint8_t temp = oam[accessed_oam_row - 8 + i];
+			oam[accessed_oam_row - 32 + i] = temp;
+			oam[accessed_oam_row - 16 + i] = temp;
+		}
+	}
+}
+
+static void oam_bug_tertiary_read_corruption(uint8_t *oam, int accessed_oam_row, tertiary_op_t op) {
+	if (accessed_oam_row < 0x98) {
+		uint16_t base_0 = read_oam_u16(oam, accessed_oam_row);
+		uint16_t base_minus_2 = read_oam_u16(oam, accessed_oam_row - 4);
+		uint16_t base_minus_4 = read_oam_u16(oam, accessed_oam_row - 8);
+		uint16_t base_minus_8 = read_oam_u16(oam, accessed_oam_row - 16);
+		uint16_t base_minus_16 = read_oam_u16(oam, accessed_oam_row - 32);
+
+		uint16_t corrupted_val = op(base_0, base_minus_2, base_minus_4, base_minus_8, base_minus_16);
+		write_oam_u16(oam, accessed_oam_row - 8, corrupted_val);
+
+		for (int i = 0; i < 8; i++) {
+			uint8_t temp = oam[accessed_oam_row - 8 + i];
+			oam[accessed_oam_row - 32 + i] = temp;
+			oam[accessed_oam_row - 16 + i] = temp;
+		}
+	}
+}
+
 void PicturePU::trigger_oam_bug(bool is_write) {
-	std::cout << "[DEBUG] trigger_oam_bug: is_write=" << is_write << " LCDC_enabled=" << LCDC_LCD_enabled() << " mode=" << (int)LCDS_mode() << " line_ticks=" << line_ticks << std::endl;
 	if (!LCDC_LCD_enabled() || LCDS_mode() != MODE_OAM) {
 		return;
 	}
-	int row = line_ticks / 4;
-	if (row < 1 || row > 19) {
+	int accessed_oam_row = (line_ticks / 4) * 8;
+	if (accessed_oam_row < 8 || accessed_oam_row > 152) {
 		return;
 	}
 
 	uint8_t *oam = reinterpret_cast<uint8_t*>(oam_ram.data());
 
-	uint16_t b = oam[(row - 1) * 8] | (oam[(row - 1) * 8 + 1] << 8);
-	uint16_t c = oam[(row - 1) * 8 + 4] | (oam[(row - 1) * 8 + 5] << 8);
-
 	if (is_write) {
-		uint16_t a = oam[row * 8] | (oam[row * 8 + 1] << 8);
-		uint16_t corrupted_val = ((a ^ c) & (b ^ c)) ^ c;
-		std::cout << "[OAM BUG] row=" << row << " ticks=" << line_ticks << " write=1 a=" << std::hex << a << " b=" << b << " c=" << c << " corr=" << corrupted_val << std::dec << std::endl;
-		oam[row * 8] = corrupted_val & 0xFF;
-		oam[row * 8 + 1] = (corrupted_val >> 8) & 0xFF;
-		std::memcpy(&oam[row * 8 + 2], &oam[(row - 1) * 8 + 2], 6);
+		uint16_t base_0 = read_oam_u16(oam, accessed_oam_row);
+		uint16_t base_minus_4 = read_oam_u16(oam, accessed_oam_row - 8);
+		uint16_t base_minus_2 = read_oam_u16(oam, accessed_oam_row - 4);
+
+		uint16_t corrupted_val = bitwise_glitch(base_0, base_minus_4, base_minus_2);
+		write_oam_u16(oam, accessed_oam_row, corrupted_val);
+
+		for (int i = 2; i < 8; i++) {
+			oam[accessed_oam_row + i] = oam[accessed_oam_row - 8 + i];
+		}
 	} else {
-		uint16_t a = oam[row * 8] | (oam[row * 8 + 1] << 8);
-		uint16_t corrupted_val = b | (a & c);
-		std::cout << "[OAM BUG] row=" << row << " ticks=" << line_ticks << " write=0 a=" << std::hex << a << " b=" << b << " c=" << c << " corr=" << corrupted_val << std::dec << std::endl;
-		oam[row * 8] = corrupted_val & 0xFF;
-		oam[row * 8 + 1] = (corrupted_val >> 8) & 0xFF;
-		std::memcpy(&oam[row * 8 + 2], &oam[(row - 1) * 8 + 2], 6);
+		if ((accessed_oam_row & 0x18) == 0x10) {
+			oam_bug_secondary_read_corruption(oam, accessed_oam_row);
+		}
+		else if ((accessed_oam_row & 0x18) == 0x00) {
+			if (accessed_oam_row == 0x40) {
+				oam_bug_quaternary_read_corruption(oam, accessed_oam_row);
+			}
+			else if (accessed_oam_row == 0x20) {
+				oam_bug_tertiary_read_corruption(oam, accessed_oam_row, bitwise_glitch_tertiary_read_2);
+			}
+			else if (accessed_oam_row == 0x60) {
+				oam_bug_tertiary_read_corruption(oam, accessed_oam_row, bitwise_glitch_tertiary_read_3);
+			}
+			else {
+				oam_bug_tertiary_read_corruption(oam, accessed_oam_row, bitwise_glitch_tertiary_read_1);
+			}
+		}
+		else {
+			uint16_t base_0 = read_oam_u16(oam, accessed_oam_row);
+			uint16_t base_minus_4 = read_oam_u16(oam, accessed_oam_row - 8);
+			uint16_t base_minus_2 = read_oam_u16(oam, accessed_oam_row - 4);
+			uint16_t corrupted_val = bitwise_glitch_read(base_0, base_minus_4, base_minus_2);
+			write_oam_u16(oam, accessed_oam_row - 8, corrupted_val);
+			write_oam_u16(oam, accessed_oam_row, corrupted_val);
+		}
+
+		for (int i = 0; i < 8; i++) {
+			oam[accessed_oam_row + i] = oam[accessed_oam_row - 8 + i];
+		}
+
+		if (accessed_oam_row == 0x80) {
+			std::memcpy(oam, oam + accessed_oam_row, 8);
+		}
 	}
 }

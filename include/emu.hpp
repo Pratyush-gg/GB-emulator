@@ -40,6 +40,7 @@ class Emulator {
 
 public:
     explicit Emulator(const std::string& rom_filename);
+    void reload(const std::string& rom_filename);
     void run();
     void run_one();
     bool is_running() const;

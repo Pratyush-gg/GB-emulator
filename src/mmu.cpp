@@ -29,15 +29,15 @@ uint8_t MMU::read_data(const uint16_t address) const {
     else if (address < ERAM_OFFSET + ERAM_SIZE) {
         return read_data(address - 0x2000);
     }
-    else if (address < OAM_OFFSET + OAM_SIZE) {
+    else if (address >= OAM_OFFSET && address < 0xFF00) {
         if (ppu->dma_transferring()) {
             return 0xFF;
         }
         ppu->trigger_oam_bug(false);
-        return ppu->read_oam(address);
-    }
-    else if (address < FORBIDDEN_OFFSET + FORBIDDEN_SIZE) {
-        return 0;
+        if (address < OAM_OFFSET + OAM_SIZE) {
+            return ppu->read_oam(address);
+        }
+        return 0xFF;
     }
     else if (address < 0xFF80) {
         if (address == 0xFF00) return joypad->joypad_get_output();
@@ -98,16 +98,14 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         return;
     }
 
-    else if (address >= OAM_OFFSET && address < OAM_OFFSET + OAM_SIZE) {
+    else if (address >= OAM_OFFSET && address < 0xFF00) {
         if (ppu->dma_transferring()) {
             return;
         }
         ppu->trigger_oam_bug(true);
-        ppu->write_oam(address, value);
-        return;
-    }
-
-    else if (address >= 0xFEA0 && address < 0xFF00) {
+        if (address < OAM_OFFSET + OAM_SIZE) {
+            ppu->write_oam(address, value);
+        }
         return;
     }
 

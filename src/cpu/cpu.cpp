@@ -61,29 +61,23 @@ int CPU::execute_instruction(const Instruction& instruction) {
 }
 
 void CPU::stack_push(const uint8_t value) {
-    check_idu_oam_bug(regs.SP, true);
     regs.SP--;
     bus->write_data(regs.SP, value);
 }
 
 void CPU::stack_push16(const uint16_t value) {
-    check_idu_oam_bug(regs.SP, true);
-    check_idu_oam_bug(regs.SP - 1, true);
     regs.SP -= 2;
     bus->write_data16(regs.SP, value);
 }
 
 uint8_t CPU::stack_pop() {
     const uint8_t value = bus->read_data(regs.SP);
-    check_idu_oam_bug(regs.SP, false);
     regs.SP++;
     return value;
 }
 
 uint16_t CPU::stack_pop16() {
     const uint16_t value = bus->read_data16(regs.SP);
-    check_idu_oam_bug(regs.SP, false);
-    check_idu_oam_bug(regs.SP + 1, false);
     regs.SP += 2;
     return value;
 }
@@ -132,7 +126,6 @@ int CPU::cpu_step() {
         last_pcs[last_pcs_idx] = prev_PC;
         last_opcodes[last_pcs_idx] = bus->read_data(prev_PC);
         last_pcs_idx = (last_pcs_idx + 1) % 100;
-        // std::cout << "[OPCODE] PC=0x" << std::hex << prev_PC << " Opcode=0x" << (int)bus->read_data(prev_PC) << std::dec << std::endl;
 
         dbg_update();
         dbg_print();
@@ -205,6 +198,8 @@ int CPU::cpu_step() {
 }
 
 void CPU::serviceInterrupt(const uint16_t interruptVector) {
+    check_idu_oam_bug(regs.PC, true);
+    check_idu_oam_bug(regs.SP, true);
     stack_push16(regs.PC);
     regs.PC = interruptVector;
 }
@@ -214,7 +209,6 @@ std::reference_wrapper<RegisterFile> CPU::getRegisterDebug() {
 }
 
 void CPU::check_idu_oam_bug(const uint16_t reg_val, bool is_write) {
-    // std::cout << "[DEBUG] check_idu_oam_bug: reg_val=0x" << std::hex << reg_val << " is_write=" << is_write << std::dec << std::endl;
     if (reg_val >= 0xFE00 && reg_val <= 0xFEFF) {
         bus->trigger_oam_bug(is_write);
     }

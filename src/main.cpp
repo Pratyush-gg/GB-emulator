@@ -55,11 +55,21 @@ protected:
 
 int main(int argc, char* argv[]) {
     bool headless = false;
-    std::string inputRom = "C:\\Pratyush\\study\\GB-emulator\\roms\\tests\\cpu_instrs\\individual\\02-interrupts.gb";
+    bool debug_mode = false;
+    std::string inputRom = "path\\to\\rom";
+
+    // Check environment variable
+    const char* env_gb_debug = std::getenv("GB_DEBUG");
+    if (env_gb_debug && std::string(env_gb_debug) == "1") {
+        debug_mode = true;
+    }
+
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--headless") {
             headless = true;
+        } else if (arg == "--debug") {
+            debug_mode = true;
         } else {
             inputRom = arg;
         }
@@ -85,10 +95,11 @@ int main(int argc, char* argv[]) {
             emu.run_one();
             updates++;
 
-            if (mmu.read_data(0xA001) == 0xDE &&
+            if (updates > 100000 &&
+                mmu.read_data(0xA001) == 0xDE &&
                 mmu.read_data(0xA002) == 0xB0 &&
                 mmu.read_data(0xA003) == 0x61) {
-                
+
                 uint16_t text_addr = 0xA004;
                 std::string current_text = "";
                 while (true) {
@@ -105,8 +116,8 @@ int main(int argc, char* argv[]) {
                 uint8_t status = mmu.read_data(0xA000);
                 if (status != 0x80) {
                     const auto& regs = emu.getDebugContext().regs.get();
-                    std::cout << "\nTest finished with status: " << (int)status 
-                              << " after " << updates << " instructions." 
+                    std::cout << "\nTest finished with status: " << (int)status
+                              << " after " << updates << " instructions."
                               << " A=0x" << std::hex << (int)regs._a
                               << " F=0x" << (int)regs.flags.get_byte()
                               << " BC=0x" << regs.read_register(REG_TYPE::RT_BC)
@@ -122,52 +133,55 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    const unsigned int DEBUG_WIDTH = 1200;
-    const unsigned int DEBUG_HEIGHT = 720;
     const unsigned int GAME_SCALE = 5;
     const unsigned int GAME_WIDTH = 160 * GAME_SCALE;
     const unsigned int GAME_HEIGHT = 144 * GAME_SCALE;
 
     std::cout << "Current SFML Version " << SFML_VERSION_MAJOR << "." << SFML_VERSION_MINOR << "." << SFML_VERSION_PATCH << std::endl;
 
-    sf::RenderWindow debugger_window(sf::VideoMode({DEBUG_WIDTH, DEBUG_HEIGHT}), "GB-Debugger");
-    sf::RenderWindow game_window(sf::VideoMode({GAME_WIDTH, GAME_HEIGHT}), "GB-Emulator");
+    std::unique_ptr<sf::RenderWindow> debugger_window;
+    if (debug_mode) {
+        const unsigned int DEBUG_WIDTH = 1200;
+        const unsigned int DEBUG_HEIGHT = 720;
+        debugger_window = std::make_unique<sf::RenderWindow>(sf::VideoMode({DEBUG_WIDTH, DEBUG_HEIGHT}), "Simple-Boy Debugger");
+        debugger_window->setPosition(sf::Vector2i(100 + GAME_WIDTH + 100, 400));
 
+        if (!ImGui::SFML::Init(*debugger_window)) {
+            std::cerr << "Failed to initialize ImGui-SFML" << std::endl;
+            return -1;
+        }
+
+        ImGuiIO& io = ImGui::GetIO();
+        io.Fonts->Clear();
+
+        ImFontConfig fontConfig;
+        fontConfig.FontDataOwnedByAtlas = false;
+
+        io.Fonts->AddFontFromMemoryTTF(
+            (void*)__JetBrainsMono_Medium_ttf,
+            __JetBrainsMono_Medium_ttf_len,
+            18.0f,
+            &fontConfig
+        );
+
+        if (!ImGui::SFML::UpdateFontTexture()) {
+            std::cerr << "Failed to update font texture" << std::endl;
+            return -1;
+        }
+    }
+
+    sf::RenderWindow game_window(sf::VideoMode({GAME_WIDTH, GAME_HEIGHT}), "Simple-Boy");
     game_window.setPosition(sf::Vector2i(100, 100));
-    debugger_window.setPosition(sf::Vector2i(100 + GAME_WIDTH + 100, 400));
-
-    if (!ImGui::SFML::Init(debugger_window)) {
-        std::cerr << "Failed to initialize ImGui-SFML" << std::endl;
-        return -1;
-    }
-
-    ImGuiIO& io = ImGui::GetIO();
-    io.Fonts->Clear();
-    
-    ImFontConfig fontConfig;
-    fontConfig.FontDataOwnedByAtlas = false;
-
-    io.Fonts->AddFontFromMemoryTTF(
-        (void*)__JetBrainsMono_Medium_ttf,
-        __JetBrainsMono_Medium_ttf_len,
-        18.0f,
-        &fontConfig
-    );
-
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
-    if (!ImGui::SFML::UpdateFontTexture()) {
-        std::cerr << "Failed to update font texture" << std::endl;
-        return -1;
-    }
 
     init_instructions();
 
     Debugger debugger(inputRom);
+    if (!debug_mode) {
+        debugger.runContinue(); // Automatically start running the emulator if debugger GUI is not active
+    }
 
-	SoundStream audio_stream(debugger.getAPU()->getAudioBuffer());
-	audio_stream.play();
+    SoundStream audio_stream(debugger.getAPU()->getAudioBuffer());
+    audio_stream.play();
 
     sf::Texture game_texture;
 
@@ -177,21 +191,20 @@ int main(int argc, char* argv[]) {
     }
 
     sf::Sprite game_sprite(game_texture);
-
     game_sprite.setScale({static_cast<float>(GAME_SCALE), static_cast<float>(GAME_SCALE)});
 
     std::array<uint32_t, 160 * 144> game_buffer;
-
     sf::Clock deltaClock;
 
+    while (game_window.isOpen() && (!debug_mode || (debugger_window && debugger_window->isOpen())) && !debugger.exit_requested){
 
-    while (debugger_window.isOpen() && game_window.isOpen()){
+        if (debug_mode && debugger_window) {
+            while (const std::optional event = debugger_window->pollEvent()) {
+                ImGui::SFML::ProcessEvent(*debugger_window, *event);
 
-        while (const std::optional event = debugger_window.pollEvent()) {
-            ImGui::SFML::ProcessEvent(debugger_window, *event);
-
-            if (event->is<sf::Event::Closed>()) {
-                debugger_window.close();
+                if (event->is<sf::Event::Closed>()) {
+                    debugger_window->close();
+                }
             }
         }
 
@@ -202,29 +215,42 @@ int main(int argc, char* argv[]) {
             }
 
             else if (const auto* keyEvent = event->getIf<sf::Event::KeyPressed>()) {
-                debugger.handle_input(keyEvent->code, true);
+                if (keyEvent->code == sf::Keyboard::Key::Escape) {
+                    game_window.close();
+                } else {
+                    debugger.handle_input(keyEvent->code, true);
+                }
             }
             else if (const auto* keyEvent = event->getIf<sf::Event::KeyReleased>()) {
                 debugger.handle_input(keyEvent->code, false);
             }
         }
 
-        ImGui::SFML::Update(debugger_window, deltaClock.restart());
-        debugger.render();
+        if (debug_mode && debugger_window) {
+            ImGui::SFML::Update(*debugger_window, deltaClock.restart());
+            debugger.render();
+        }
 
         debugger.get_video_buffer(game_buffer);
-
         game_texture.update(reinterpret_cast<const std::uint8_t*>(game_buffer.data()));
 
-        debugger_window.clear(sf::Color::Black);
-        ImGui::SFML::Render(debugger_window);
-        debugger_window.display();
+        if (debug_mode && debugger_window) {
+            debugger_window->clear(sf::Color::Black);
+            ImGui::SFML::Render(*debugger_window);
+            debugger_window->display();
+        }
 
         game_window.clear(sf::Color::Black);
         game_window.draw(game_sprite);
         game_window.display();
+
+        if (!debug_mode) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     }
 
-    ImGui::SFML::Shutdown();
+    if (debug_mode) {
+        ImGui::SFML::Shutdown();
+    }
     return 0;
 }

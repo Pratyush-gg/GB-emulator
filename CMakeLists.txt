@@ -1,16 +1,24 @@
 cmake_minimum_required(VERSION 3.28)
-project(gb-emulator LANGUAGES CXX)
+project(Simple-Boy LANGUAGES CXX)
+
+# Default to Release build if not specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to 'Release' as none was specified.")
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 include(FetchContent)
+set(FETCHCONTENT_QUIET OFF)
 
 # Fetch SFML
 FetchContent_Declare(SFML
         GIT_REPOSITORY https://github.com/SFML/SFML.git
         GIT_TAG master
         GIT_SHALLOW ON
+        GIT_PROGRESS ON
         EXCLUDE_FROM_ALL
         SYSTEM)
 FetchContent_MakeAvailable(SFML)
@@ -20,6 +28,7 @@ FetchContent_Declare(ImGui
         GIT_REPOSITORY https://github.com/ocornut/imgui
         GIT_TAG v1.91.5
         GIT_SHALLOW ON
+        GIT_PROGRESS ON
         EXCLUDE_FROM_ALL
         SYSTEM)
 FetchContent_MakeAvailable(ImGui)
@@ -31,6 +40,7 @@ FetchContent_Declare(ImGui-SFML
         GIT_REPOSITORY https://github.com/SFML/imgui-sfml
         GIT_TAG master
         GIT_SHALLOW ON
+        GIT_PROGRESS ON
         EXCLUDE_FROM_ALL
         SYSTEM)
 FetchContent_MakeAvailable(ImGui-SFML)

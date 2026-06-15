@@ -17,7 +17,7 @@ Cartridge::Cartridge(const std::string &filename) {
         exit(1);
     }
 
-    std::cout << "HELLO FROM CUSTOM AGENT Loading cartridge: " << filename << std::endl;
+    std::cout << "Loading cartridge: " << filename << std::endl;
 
     constexpr size_t HEADER_OFFSET = 0x100;
 

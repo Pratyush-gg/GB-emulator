@@ -72,6 +72,7 @@ int CPU::process_JR() {
 
 int CPU::process_CALL() {
     if (check_condition(current_instruction)) {
+        check_idu_oam_bug(regs.SP, true);
         tick();
         stack_push(regs.PC >> 8); tick();
         stack_push(regs.PC & 0xFF); tick();
@@ -83,6 +84,7 @@ int CPU::process_CALL() {
 
 int CPU::process_RST() {
     if (check_condition(current_instruction)) {
+        check_idu_oam_bug(regs.SP, true);
         stack_push(regs.PC >> 8); tick();
         stack_push(regs.PC & 0xFF); tick();
         regs.PC = current_instruction.param.value();
@@ -200,6 +202,7 @@ int CPU::process_LDH() {
 }
 
 int CPU::process_PUSH() {
+    check_idu_oam_bug(regs.SP, true);
     tick();
     stack_push((regs.read_register(current_instruction.reg1.value()) >> 8) & 0xFF); tick();
     stack_push(regs.read_register(current_instruction.reg1.value()) & 0xFF);        tick();
@@ -207,7 +210,6 @@ int CPU::process_PUSH() {
 }
 
 int CPU::process_POP() {
-    // std::cout << "[DEBUG] process_POP: SP=0x" << std::hex << regs.SP << std::dec << std::endl;
     uint8_t lo = stack_pop(); tick();
     uint8_t hi = stack_pop(); tick();
     uint16_t n = lo | (hi << 8);

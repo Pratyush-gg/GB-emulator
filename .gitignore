@@ -1,7 +1,35 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-./build
-/.vs
-/build
-/out/build
+# Build Directories
+/out/
+/cmake-build-debug/
+/cmake-build-release/
+/build/
+.vs/
+out/
+cmake-build-debug/
+cmake-build-release/
+build/
+
+# Compilation Artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.pdb
+*.suo
+*.user
+
+# Operating System Files
+.DS_Store
+desktop.ini
+Thumbs.db
+
+# Emulator Saves & Logs
+*.log
+*.battery
+*.sav
+imgui.ini
+
+# Ignore all ROMs except the placeholder and submodules
+/roms/*
+!/roms/.gitkeep
+!/roms/tests/
