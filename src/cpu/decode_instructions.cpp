@@ -28,6 +28,7 @@ int CPU::decode_instruction() {
         case ADDR_MODE::AM_R_D8: {
             fetch_data = bus->read_data(regs.PC);
             regs.PC++;
+            tick();
             return 4;
         }
 
@@ -35,7 +36,9 @@ int CPU::decode_instruction() {
 
         case ADDR_MODE::AM_D16: {
             const uint16_t low = bus->read_data(regs.PC);
+            tick();
             const uint16_t high = bus->read_data(regs.PC + 1);
+            tick();
             fetch_data = low | (high << 8);
             regs.PC += 2;
             return 8;
@@ -59,18 +62,23 @@ int CPU::decode_instruction() {
                 addr |= 0xFF00;
             }
             fetch_data = bus->read_data(addr);
+            tick();
             return 4;
         }
 
         case ADDR_MODE::AM_R_HLI: {
             fetch_data = bus->read_data(regs.read_register(current_instruction.reg2.value()));
+            check_idu_oam_bug(regs.read_register(REG_TYPE::RT_HL), false);
             regs.set_register(REG_TYPE::RT_HL, regs.read_register(REG_TYPE::RT_HL) + 1);
+            tick();
             return 4;
         }
 
         case ADDR_MODE::AM_R_HLD: {
             fetch_data = bus->read_data(regs.read_register(current_instruction.reg2.value()));
+            check_idu_oam_bug(regs.read_register(REG_TYPE::RT_HL), false);
             regs.set_register(REG_TYPE::RT_HL, regs.read_register(REG_TYPE::RT_HL) - 1);
+            tick();
             return 4;
         }
 
@@ -78,6 +86,7 @@ int CPU::decode_instruction() {
             fetch_data = regs.read_register(current_instruction.reg2.value());
             mem_dest = regs.read_register(current_instruction.reg1.value());
             dest_is_mem = true;
+            check_idu_oam_bug(regs.read_register(REG_TYPE::RT_HL), true);
             regs.set_register(REG_TYPE::RT_HL, regs.read_register(REG_TYPE::RT_HL) + 1);
             return 0;
         }
@@ -86,6 +95,7 @@ int CPU::decode_instruction() {
             fetch_data = regs.read_register(current_instruction.reg2.value());
             mem_dest = regs.read_register(current_instruction.reg1.value());
             dest_is_mem = true;
+            check_idu_oam_bug(regs.read_register(REG_TYPE::RT_HL), true);
             regs.set_register(REG_TYPE::RT_HL, regs.read_register(REG_TYPE::RT_HL) - 1);
             return 0;
         }
@@ -93,6 +103,7 @@ int CPU::decode_instruction() {
         case ADDR_MODE::AM_R_A8: {
             fetch_data = bus->read_data(regs.PC);
             regs.PC++;
+            tick();
             return 4;
         }
 
@@ -100,18 +111,21 @@ int CPU::decode_instruction() {
             mem_dest = bus->read_data(regs.PC) | 0xFF00;
             regs.PC++;
             dest_is_mem = true;
+            tick();
             return 4;
         }
 
         case ADDR_MODE::AM_HL_SPR: {
             fetch_data = bus->read_data(regs.PC);
             regs.PC++;
+            tick();
             return 4;
         }
 
         case ADDR_MODE::AM_D8: {
             fetch_data = bus->read_data(regs.PC);
             regs.PC++;
+            tick();
             return 4;
         }
 
@@ -119,7 +133,9 @@ int CPU::decode_instruction() {
 
         case ADDR_MODE::AM_D16_R: {
             uint16_t low1 = bus->read_data(regs.PC);
+            tick();
             uint16_t high1 = bus->read_data(regs.PC + 1);
+            tick();
             mem_dest = low1 | (high1 << 8);
             dest_is_mem = true;
             fetch_data = regs.read_register(current_instruction.reg2.value());
@@ -128,10 +144,20 @@ int CPU::decode_instruction() {
         }
 
         case ADDR_MODE::AM_MR_D8: {
-            fetch_data = bus->read_data(regs.PC);
-            mem_dest = regs.read_register(current_instruction.reg1.value());
-            dest_is_mem = true;
+            if (current_instruction.mode == ADDR_MODE::AM_A8_R) {
+                mem_dest = bus->read_data(regs.PC) | 0xFF00;
+                dest_is_mem = true;
+            }
+            else if (current_instruction.mode == ADDR_MODE::AM_MR_D8) {
+                fetch_data = bus->read_data(regs.PC);
+                mem_dest = regs.read_register(current_instruction.reg1.value());
+                dest_is_mem = true;
+            }
+            else {
+                fetch_data = bus->read_data(regs.PC);
+            }
             regs.PC++;
+            tick();
             return 4;
         }
 
@@ -139,14 +165,18 @@ int CPU::decode_instruction() {
             mem_dest = regs.read_register(current_instruction.reg1.value());
             dest_is_mem = true;
             fetch_data = bus->read_data(regs.read_register(current_instruction.reg1.value()));
+            tick();
             return 4;
         }
 
         case ADDR_MODE::AM_R_A16: {
             uint16_t low2 = bus->read_data(regs.PC);
+            tick();
             uint16_t high2 = bus->read_data(regs.PC + 1);
+            tick();
             uint16_t addr2 = low2 | (high2 << 8);
             fetch_data = bus->read_data(addr2);
+            tick();
             regs.PC += 2;
             return 12;
         }

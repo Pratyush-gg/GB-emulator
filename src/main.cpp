@@ -54,6 +54,73 @@ protected:
 };
 
 int main(int argc, char* argv[]) {
+    bool headless = false;
+    std::string inputRom = "C:\\Pratyush\\study\\GB-emulator\\roms\\tests\\cpu_instrs\\individual\\02-interrupts.gb";
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--headless") {
+            headless = true;
+        } else {
+            inputRom = arg;
+        }
+    }
+
+    if (headless) {
+        init_instructions();
+        Emulator emu(inputRom);
+        std::cout << "Running headlessly: " << inputRom << std::endl;
+        uint64_t updates = 0;
+        constexpr uint64_t MAX_UPDATES = 100000000;
+
+        const auto& mmu = emu.getDebugContext().mmu.get();
+        size_t last_printed_len = 0;
+
+        while (emu.is_running() && updates < MAX_UPDATES) {
+            if (updates == 0) {
+                std::cout << "RAM at 0xA000: " << (int)mmu.read_data(0xA000)
+                          << " 0xA001: " << (int)mmu.read_data(0xA001)
+                          << " 0xA002: " << (int)mmu.read_data(0xA002)
+                          << " 0xA003: " << (int)mmu.read_data(0xA003) << std::endl;
+            }
+            emu.run_one();
+            updates++;
+
+            if (mmu.read_data(0xA001) == 0xDE &&
+                mmu.read_data(0xA002) == 0xB0 &&
+                mmu.read_data(0xA003) == 0x61) {
+                
+                uint16_t text_addr = 0xA004;
+                std::string current_text = "";
+                while (true) {
+                    char c = mmu.read_data(text_addr);
+                    if (c == 0) break;
+                    current_text += c;
+                    text_addr++;
+                }
+                if (current_text.length() > last_printed_len) {
+                    std::cout << current_text.substr(last_printed_len) << std::flush;
+                    last_printed_len = current_text.length();
+                }
+
+                uint8_t status = mmu.read_data(0xA000);
+                if (status != 0x80) {
+                    const auto& regs = emu.getDebugContext().regs.get();
+                    std::cout << "\nTest finished with status: " << (int)status 
+                              << " after " << updates << " instructions." 
+                              << " A=0x" << std::hex << (int)regs._a
+                              << " F=0x" << (int)regs.flags.get_byte()
+                              << " BC=0x" << regs.read_register(REG_TYPE::RT_BC)
+                              << " DE=0x" << regs.read_register(REG_TYPE::RT_DE)
+                              << " HL=0x" << regs.read_register(REG_TYPE::RT_HL)
+                              << " SP=0x" << regs.read_register(REG_TYPE::RT_SP)
+                              << " PC=0x" << regs.read_register(REG_TYPE::RT_PC) << std::dec << std::endl;
+                    return status;
+                }
+            }
+        }
+        std::cout << std::endl << "Headless run finished after " << updates << " instructions." << std::endl;
+        return 0;
+    }
 
     const unsigned int DEBUG_WIDTH = 1200;
     const unsigned int DEBUG_HEIGHT = 720;
@@ -96,9 +163,6 @@ int main(int argc, char* argv[]) {
     }
 
     init_instructions();
-
-    std::string inputRom = "C:\\Pratyush\\study\\GB-emulator\\roms\\tests\\dmg_sound\\rom_singles\\02-len ctr.gb";
-    if (argc > 1) inputRom = argv[1];
 
     Debugger debugger(inputRom);
 

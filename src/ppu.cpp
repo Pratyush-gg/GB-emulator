@@ -400,7 +400,9 @@ void PicturePU::ppu_mode_vblank() {
 }
 
 void PicturePU::ppu_mode_hblank() {
-	if (line_ticks >= TICKS_PER_LINE) {
+	unsigned target_ticks = first_scanline ? (TICKS_PER_LINE - 4) : TICKS_PER_LINE;
+	if (line_ticks >= target_ticks) {
+		first_scanline = false;
 		increment_LY();
 
 		if (LY >= SCREEN_HEIGHT) {
@@ -441,6 +443,9 @@ void PicturePU::ppu_mode_hblank() {
 }
 
 void PicturePU::ppu_tick(unsigned cycles) {
+	if (!LCDC_LCD_enabled()) {
+		return;
+	}
 	while (cycles --) {
 		line_ticks++;
 		switch (LCDS_mode()) {
@@ -557,8 +562,26 @@ uint8_t PicturePU::LCD_read(uint16_t address) {
 void PicturePU::LCD_write(uint16_t address, const uint8_t value) {
 	uint8_t offset = address - LCDC_ADDR;
 	switch (offset) {
-		case 0x00: LCDC = value; break;
-		case 0x01: STAT = value; break;
+		case 0x00: {
+			bool old_lcd_on = ((LCDC & 0x80) != 0);
+			LCDC = value;
+			bool new_lcd_on = ((LCDC & 0x80) != 0);
+			if (old_lcd_on != new_lcd_on) {
+				if (new_lcd_on) {
+					LY = 0;
+					line_ticks = 0;
+					first_scanline = true;
+					LCDS_mode_set(MODE_HBLANK);
+				} else {
+					LY = 0;
+					line_ticks = 0;
+					first_scanline = false;
+					LCDS_mode_set(MODE_HBLANK);
+				}
+			}
+			break;
+		}
+		case 0x01: STAT = (value & 0xF8) | (STAT & 0x07); break;
 		case 0x02: SCY = value;	break;
 		case 0x03: SCX = value;	break;
 		case 0x04: LY = value;	break;
@@ -585,5 +608,37 @@ void PicturePU::LCD_write(uint16_t address, const uint8_t value) {
 	}
 	else if (address == OBP1_ADDR) {
 		update_palettes(value & 0b11111100, 2);
+	}
+}
+
+void PicturePU::trigger_oam_bug(bool is_write) {
+	std::cout << "[DEBUG] trigger_oam_bug: is_write=" << is_write << " LCDC_enabled=" << LCDC_LCD_enabled() << " mode=" << (int)LCDS_mode() << " line_ticks=" << line_ticks << std::endl;
+	if (!LCDC_LCD_enabled() || LCDS_mode() != MODE_OAM) {
+		return;
+	}
+	int row = line_ticks / 4;
+	if (row < 1 || row > 19) {
+		return;
+	}
+
+	uint8_t *oam = reinterpret_cast<uint8_t*>(oam_ram.data());
+
+	uint16_t b = oam[(row - 1) * 8] | (oam[(row - 1) * 8 + 1] << 8);
+	uint16_t c = oam[(row - 1) * 8 + 4] | (oam[(row - 1) * 8 + 5] << 8);
+
+	if (is_write) {
+		uint16_t a = oam[row * 8] | (oam[row * 8 + 1] << 8);
+		uint16_t corrupted_val = ((a ^ c) & (b ^ c)) ^ c;
+		std::cout << "[OAM BUG] row=" << row << " ticks=" << line_ticks << " write=1 a=" << std::hex << a << " b=" << b << " c=" << c << " corr=" << corrupted_val << std::dec << std::endl;
+		oam[row * 8] = corrupted_val & 0xFF;
+		oam[row * 8 + 1] = (corrupted_val >> 8) & 0xFF;
+		std::memcpy(&oam[row * 8 + 2], &oam[(row - 1) * 8 + 2], 6);
+	} else {
+		uint16_t a = oam[row * 8] | (oam[row * 8 + 1] << 8);
+		uint16_t corrupted_val = b | (a & c);
+		std::cout << "[OAM BUG] row=" << row << " ticks=" << line_ticks << " write=0 a=" << std::hex << a << " b=" << b << " c=" << c << " corr=" << corrupted_val << std::dec << std::endl;
+		oam[row * 8] = corrupted_val & 0xFF;
+		oam[row * 8 + 1] = (corrupted_val >> 8) & 0xFF;
+		std::memcpy(&oam[row * 8 + 2], &oam[(row - 1) * 8 + 2], 6);
 	}
 }

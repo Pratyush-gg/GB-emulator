@@ -1,4 +1,28 @@
 #include "../include/apu.hpp"
+#include <fstream>
+#include <iostream>
+
+namespace {
+std::ofstream& apuLenTrace() {
+	static std::ofstream file("apu_len_trace.log", std::ios::out | std::ios::trunc);
+	return file;
+}
+
+void traceLenEvent(const char* tag, int ch, int step, int len, bool len_en, bool en) {
+	static int traceCount = 0;
+	if (traceCount >= 1500) {
+		return;
+	}
+	apuLenTrace() << tag
+		<< " ch=" << ch
+		<< " step=" << step
+		<< " len=" << len
+		<< " len_en=" << (len_en ? 1 : 0)
+		<< " en=" << (en ? 1 : 0)
+		<< '\n';
+	traceCount++;
+}
+}
 
 constexpr int FRAME_SEQUENCER_CLOCKS = 8192;
 constexpr int SAMPLE_RATE = 44100;
@@ -34,20 +58,97 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			AUD4ENV = 0;
 			AUD4POLY = 0;
 			AUD4GO = 0;
+
+			// Channel 1
 			channel1.enabled = false;
+			channel1.dac_enabled = false;
+			channel1.length_enabled = false;
+			channel1.initial_volume = 0;
+			channel1.current_volume = 0;
+			channel1.envelope_timer = 0;
+			channel1.envelope_period = 0;
+			channel1.envelope_increasing = false;
+			channel1.frequency = 0;
+			channel1.timer = 0;
+			channel1.sweep_timer = 0;
+			channel1.sweep_period = 0;
+			channel1.sweep_shift = 0;
+			channel1.shadow_frequency = 0;
+			channel1.duty_pattern = 0;
+			channel1.duty_position = 0;
+			channel1.sweep_enabled = false;
+			channel1.sweep_negate = false;
+			channel1.sweep_negate_used = false;
+
+			// Channel 2
 			channel2.enabled = false;
+			channel2.dac_enabled = false;
+			channel2.length_enabled = false;
+			channel2.initial_volume = 0;
+			channel2.current_volume = 0;
+			channel2.envelope_timer = 0;
+			channel2.envelope_period = 0;
+			channel2.envelope_increasing = false;
+			channel2.frequency = 0;
+			channel2.timer = 0;
+			channel2.duty_pattern = 0;
+			channel2.duty_position = 0;
+
+			// Channel 3
 			channel3.enabled = false;
+			channel3.dac_enabled = false;
+			channel3.length_enabled = false;
+			channel3.frequency = 0;
+			channel3.timer = 0;
+			channel3.position = 0;
+			channel3.output_level = 0;
+
+			// Channel 4
 			channel4.enabled = false;
-			channel1.length_timer = 0;
-			channel2.length_timer = 0;
-			channel3.length_timer = 0;
-			channel4.length_timer = 0;
+			channel4.dac_enabled = false;
+			channel4.length_enabled = false;
+			channel4.initial_volume = 0;
+			channel4.current_volume = 0;
+			channel4.envelope_timer = 0;
+			channel4.envelope_period = 0;
+			channel4.envelope_increasing = false;
+			channel4.frequency = 0;
+			channel4.timer = 0;
+			channel4.lfsr = 0x7FFF;
+			channel4.clock_shift = 0;
+			channel4.divisor_code = 0;
+			channel4.width_mode = false;
+
+			frame_sequencer_step = 7;
+
+			// DMG: frame sequencer step is NOT reset on power-off
+			// (CGB would reset it here)
 		}
 		return;
 	}
 
-	// APU is off
+	// APU is off — on DMG, only NRx1 length load registers are writable
 	if (!(AUDENA & 0x80)) {
+		// switch (address) {
+		// 	case 0xFF11: // NR11 - CH1 length
+		// 		AUD1LEN = value;
+		// 		channel1.length_timer = 64 - (value & 0x3F);
+		// 		break;
+		// 	case 0xFF16: // NR21 - CH2 length
+		// 		AUD2LEN = value;
+		// 		channel2.length_timer = 64 - (value & 0x3F);
+		// 		break;
+		// 	case 0xFF1B: // NR31 - CH3 length
+		// 		AUD3LEN = value;
+		// 		channel3.length_timer = 256 - value;
+		// 		break;
+		// 	case 0xFF20: // NR41 - CH4 length
+		// 		AUD4LEN = value;
+		// 		channel4.length_timer = 64 - (value & 0x3F);
+		// 		break;
+		// 	default:
+		// 		break; // All other writes ignored when APU is off
+		// }
 		return;
 	}
 
@@ -57,16 +158,23 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 		case 0xFF25: AUDTERM	= value; break;
 
 		// CHANNEL 1
-		case 0xFF10:
+		case 0xFF10: {
 			AUD1SWEEP = value;
 			channel1.sweep_shift = value & 0x7;
 			channel1.sweep_period = (value >> 4) & 0x7;
+			bool was_negate = channel1.sweep_negate;
 			channel1.sweep_negate = value & 0x8;
+			// Clearing negate after it was used disables the channel
+			if (was_negate && !channel1.sweep_negate && channel1.sweep_negate_used) {
+				channel1.enabled = false;
+			}
 			break;
+		}
 		case 0xFF11:
 			AUD1LEN = value;
 			channel1.length_timer = 64 - (value & 0x3F);
 			channel1.duty_pattern = (value >> 6) & 0x3;
+			traceLenEvent("LEN_WRITE", 1, frame_sequencer_step, channel1.length_timer, channel1.length_enabled, channel1.enabled);
 			break;
 		case 0xFF12:
 			AUD1ENV = value;
@@ -83,14 +191,16 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel1.frequency = (channel1.frequency & 0xFF00) | value;
 			break;
 		case 0xFF14: {
+			if (value & 0x80) {
+				std::cout << "[DEBUG_APU] total_cycles=" << total_cycles << " write NR14=" << (int)value << " (trigger) step=" << frame_sequencer_step << " len=" << channel1.length_timer << " len_en=" << (channel1.length_enabled ? 1 : 0) << std::endl;
+			}
 			AUD1HIGH = value;
 			channel1.frequency = (channel1.frequency & 0x00FF) | ((value & 0x7) << 8);
 			bool prev_length_enabled = channel1.length_enabled;
 			channel1.length_enabled = value & 0x40;
+			traceLenEvent("NRX4_PRE", 1, frame_sequencer_step, channel1.length_timer, channel1.length_enabled, channel1.enabled);
 
-			bool extra_clock = (!prev_length_enabled && channel1.length_enabled && (frame_sequencer_step % 2 == 0));
-
-			if (extra_clock) {
+			if (!prev_length_enabled && channel1.length_enabled && (frame_sequencer_step % 2 == 0)) {
 				if (channel1.length_timer > 0) {
 					channel1.length_timer--;
 					if (channel1.length_timer == 0) channel1.enabled = false;
@@ -100,12 +210,13 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			if (value & 0x80) {
 				if (channel1.length_timer == 0) {
 					channel1.length_timer = 64;
-					if (extra_clock) {
+					if (channel1.length_enabled && (frame_sequencer_step % 2 == 0)) {
 						channel1.length_timer--;
 					}
 				}
 				channel1.trigger();
 			}
+			traceLenEvent("NRX4_POST", 1, frame_sequencer_step, channel1.length_timer, channel1.length_enabled, channel1.enabled);
 			break;
 		}
 		// CHANNEL 2
@@ -113,6 +224,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			AUD2LEN = value;
 			channel2.duty_pattern = (value >> 6) & 0x03;
 			channel2.length_timer = 64 - (value & 0x3F);
+			traceLenEvent("LEN_WRITE", 2, frame_sequencer_step, channel2.length_timer, channel2.length_enabled, channel2.enabled);
 			break;
 		case 0xFF17:
 			AUD2ENV = value;
@@ -133,10 +245,9 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel2.frequency = (channel2.frequency & 0x00FF) | ((value & 0x07) << 8);
 			bool prev_length_enabled2 = channel2.length_enabled;
 			channel2.length_enabled = value & 0x40;
+			traceLenEvent("NRX4_PRE", 2, frame_sequencer_step, channel2.length_timer, channel2.length_enabled, channel2.enabled);
 
-			bool extra_clock = (!prev_length_enabled2 && channel2.length_enabled && (frame_sequencer_step % 2 == 0));
-
-			if (extra_clock) {
+			if (!prev_length_enabled2 && channel2.length_enabled && (frame_sequencer_step % 2 == 0)) {
 				if (channel2.length_timer > 0) {
 					channel2.length_timer--;
 					if (channel2.length_timer == 0) channel2.enabled = false;
@@ -146,12 +257,13 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			if (value & 0x80) {
 				if (channel2.length_timer == 0) {
 					channel2.length_timer = 64;
-					if (extra_clock) {
+					if (channel2.length_enabled && (frame_sequencer_step % 2 == 0)) {
 						channel2.length_timer--;
 					}
 				}
 				channel2.trigger();
 			}
+			traceLenEvent("NRX4_POST", 2, frame_sequencer_step, channel2.length_timer, channel2.length_enabled, channel2.enabled);
 			break;
 		}
 
@@ -166,6 +278,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 		case 0xFF1B:
 			AUD3LEN = value;
 			channel3.length_timer = 256 - value;
+			traceLenEvent("LEN_WRITE", 3, frame_sequencer_step, channel3.length_timer, channel3.length_enabled, channel3.enabled);
 			break;
 		case 0xFF1C:
 			AUD3LEVEL = value;
@@ -180,9 +293,9 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel3.frequency = (channel3.frequency & 0x00FF) | ((value & 0x07) << 8);
 			bool prev_length_enabled3 = channel3.length_enabled;
 			channel3.length_enabled = value & 0x40;
-			bool extra_clock = (!prev_length_enabled3 && channel3.length_enabled && (frame_sequencer_step % 2 == 0));
+			traceLenEvent("NRX4_PRE", 3, frame_sequencer_step, channel3.length_timer, channel3.length_enabled, channel3.enabled);
 
-			if (extra_clock) {
+			if ((!prev_length_enabled3 && channel3.length_enabled && (frame_sequencer_step % 2 == 0))) {
 				if (channel3.length_timer > 0) {
 					channel3.length_timer--;
 					if (channel3.length_timer == 0) channel3.enabled = false;
@@ -192,12 +305,13 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			if (value & 0x80) {
 				if (channel3.length_timer == 0) {
 					channel3.length_timer = 256;
-					if (extra_clock) {
+					if (channel3.length_enabled && (frame_sequencer_step % 2 == 0)) {
 						channel3.length_timer--;
 					}
 				}
 				channel3.trigger();
 			}
+			traceLenEvent("NRX4_POST", 3, frame_sequencer_step, channel3.length_timer, channel3.length_enabled, channel3.enabled);
 			break;
 		}
 
@@ -205,6 +319,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 		case 0xFF20:
 			AUD4LEN = value;
 			channel4.length_timer = 64 - (value & 0x3F);
+			traceLenEvent("LEN_WRITE", 4, frame_sequencer_step, channel4.length_timer, channel4.length_enabled, channel4.enabled);
 			break;
 		case 0xFF21:
 			AUD4ENV = value;
@@ -226,14 +341,12 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			AUD4GO = value;
 			bool prev_length_enabled4 = channel4.length_enabled;
 			channel4.length_enabled = value & 0x40;
-			bool extra_clock = (!prev_length_enabled4 && channel4.length_enabled && (frame_sequencer_step % 2 == 0));
+			traceLenEvent("NRX4_PRE", 4, frame_sequencer_step, channel4.length_timer, channel4.length_enabled, channel4.enabled);
 
-			if (extra_clock) {
-				if (extra_clock) {
-					if (channel4.length_timer > 0) {
-						channel4.length_timer--;
-						if (channel4.length_timer == 0) channel4.enabled = false;
-					}
+			if (!prev_length_enabled4 && channel4.length_enabled && (frame_sequencer_step % 2 == 0)) {
+				if (channel4.length_timer > 0) {
+					channel4.length_timer--;
+					if (channel4.length_timer == 0) channel4.enabled = false;
 				}
 			}
 
@@ -246,6 +359,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 				}
 				channel4.trigger();
 			}
+			traceLenEvent("NRX4_POST", 4, frame_sequencer_step, channel4.length_timer, channel4.length_enabled, channel4.enabled);
 			break;
 		}
 	}
@@ -306,26 +420,34 @@ void AudioPU::stepFrameSequencer() {
 		// step length
 		if (channel1.length_enabled && channel1.length_timer > 0) {
 			channel1.length_timer--;
+			traceLenEvent("LEN_CLK", 1, frame_sequencer_step, channel1.length_timer, channel1.length_enabled, channel1.enabled);
 			if (channel1.length_timer == 0) {
 				channel1.enabled = false;
+				traceLenEvent("LEN_OFF", 1, frame_sequencer_step, channel1.length_timer, channel1.length_enabled, channel1.enabled);
 			}
 		}
 		if (channel2.length_enabled && channel2.length_timer > 0) {
 			channel2.length_timer--;
+			traceLenEvent("LEN_CLK", 2, frame_sequencer_step, channel2.length_timer, channel2.length_enabled, channel2.enabled);
 			if (channel2.length_timer == 0) {
 				channel2.enabled = false;
+				traceLenEvent("LEN_OFF", 2, frame_sequencer_step, channel2.length_timer, channel2.length_enabled, channel2.enabled);
 			}
 		}
 		if (channel3.length_enabled && channel3.length_timer > 0) {
 			channel3.length_timer--;
+			traceLenEvent("LEN_CLK", 3, frame_sequencer_step, channel3.length_timer, channel3.length_enabled, channel3.enabled);
 			if (channel3.length_timer == 0) {
 				channel3.enabled = false;
+				traceLenEvent("LEN_OFF", 3, frame_sequencer_step, channel3.length_timer, channel3.length_enabled, channel3.enabled);
 			}
 		}
 		if (channel4.length_enabled && channel4.length_timer > 0) {
 			channel4.length_timer--;
+			traceLenEvent("LEN_CLK", 4, frame_sequencer_step, channel4.length_timer, channel4.length_enabled, channel4.enabled);
 			if (channel4.length_timer == 0) {
 				channel4.enabled = false;
+				traceLenEvent("LEN_OFF", 4, frame_sequencer_step, channel4.length_timer, channel4.length_enabled, channel4.enabled);
 			}
 		}
 	}
@@ -372,38 +494,54 @@ void AudioPU::stepEnvelope() {
 }
 
 void AudioPU::stepSweep() {
-	if (channel1.sweep_enabled && channel1.sweep_period > 0) {
+	if (channel1.sweep_enabled) {
 		if (channel1.sweep_timer > 0) {
 			channel1.sweep_timer--;
 		}
 		if (channel1.sweep_timer == 0) {
+			// Reload timer: period=0 treated as 8
+			channel1.sweep_timer = (channel1.sweep_period > 0) ? channel1.sweep_period : 8;
+
+			// Only perform frequency calculation when period > 0
 			if (channel1.sweep_period > 0) {
-			channel1.sweep_timer = channel1.sweep_period;
-			}
-			else {
-				channel1.sweep_timer = 8;
-			}
-			int new_freq = channel1.shadow_frequency >> channel1.sweep_shift;
-			if (channel1.sweep_negate) {
-				new_freq = channel1.shadow_frequency - new_freq;
-			}
-			else {
-				new_freq = channel1.shadow_frequency + new_freq;
+				int new_freq = channel1.shadow_frequency >> channel1.sweep_shift;
+				if (channel1.sweep_negate) {
+					new_freq = channel1.shadow_frequency - new_freq;
+					channel1.sweep_negate_used = true;
+				}
+				else {
+					new_freq = channel1.shadow_frequency + new_freq;
+				}
+
+				// Overflow check
 				if (new_freq > 2047) {
 					channel1.enabled = false;
 				}
-			}
 
-			if (new_freq <= 2047 && channel1.sweep_shift > 0) {
-				channel1.shadow_frequency = new_freq;
-				channel1.frequency = new_freq;
+				if (new_freq <= 2047 && channel1.sweep_shift > 0) {
+					channel1.shadow_frequency = new_freq;
+					channel1.frequency = new_freq;
 
-				AUD1LOW = new_freq & 0xFF;
-				AUD1HIGH = (AUD1HIGH & 0xF8) | ((new_freq >> 8) & 0x07);
+					AUD1LOW = new_freq & 0xFF;
+					AUD1HIGH = (AUD1HIGH & 0xF8) | ((new_freq >> 8) & 0x07);
+
+					// Second overflow check (does NOT update frequency)
+					int second_freq = new_freq >> channel1.sweep_shift;
+					if (channel1.sweep_negate) {
+						second_freq = new_freq - second_freq;
+					}
+					else {
+						second_freq = new_freq + second_freq;
+					}
+					if (second_freq > 2047) {
+						channel1.enabled = false;
+					}
+				}
 			}
 		}
 	}
 }
+
 
 void AudioPU::SquareChannel::trigger() {
 	enabled = dac_enabled;
@@ -411,6 +549,26 @@ void AudioPU::SquareChannel::trigger() {
 	current_volume = initial_volume;
 	envelope_timer = envelope_period;
 	shadow_frequency = frequency;
+
+	if (has_sweep) {
+		sweep_negate_used = false;
+		sweep_timer = (sweep_period > 0) ? sweep_period : 8;
+		sweep_enabled = (sweep_period > 0) || (sweep_shift > 0);
+		if (sweep_shift > 0) {
+			int delta = shadow_frequency >> sweep_shift;
+			int new_freq;
+			if (sweep_negate) {
+				new_freq = shadow_frequency - delta;
+				sweep_negate_used = true;
+			}
+			else {
+				new_freq = shadow_frequency + delta;
+			}
+			if (new_freq > 2047) {
+				enabled = false;
+			}
+		}
+	}
 }
 
 void AudioPU::WaveChannel::trigger() {
@@ -429,14 +587,17 @@ void AudioPU::NoiseChannel::trigger() {
 }
 
 void AudioPU::tick(unsigned int cycles) {
+	total_cycles += cycles;
+	/*
+	static bool prev_ch1_enabled = false;
+	if (prev_ch1_enabled && !channel1.enabled) {
+		std::cout << "[DEBUG_APU] total_cycles=" << total_cycles << " CH1 DISABLED! step=" << frame_sequencer_step << std::endl;
+	}
+	prev_ch1_enabled = channel1.enabled;
+	*/
+
 	if (!(AUDENA & 0x80)) {
 		return;
-	}
-
-	frame_sequencer_timer += cycles;
-	if (frame_sequencer_timer >= FRAME_SEQUENCER_CLOCKS) {
-		frame_sequencer_timer -= FRAME_SEQUENCER_CLOCKS;
-		stepFrameSequencer();
 	}
 
 	channel1.tick(cycles);
@@ -462,6 +623,13 @@ void AudioPU::tick(unsigned int cycles) {
 		int16_t output_sample = static_cast<int16_t>(normalize * 32767.0f);
 		masterRingBuffer.push(output_sample);
 	}
+}
+
+void AudioPU::divApuTick() {
+	if (!(AUDENA & 0x80)) {
+		return;
+	}
+	stepFrameSequencer();
 }
 
 void AudioPU::SquareChannel::tick(unsigned int cycles) {

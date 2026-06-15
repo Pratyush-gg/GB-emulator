@@ -27,18 +27,13 @@ uint8_t MMU::read_data(const uint16_t address) const {
         return wram[offset];
     }
     else if (address < ERAM_OFFSET + ERAM_SIZE) {
-        // const uint16_t offset = address - ERAM_OFFSET;
-        // if (offset >= ERAM_SIZE) {
-        //     std::cerr << "WRAM read out of bounds: " << std::hex << address << std::endl;
-        //     return 0xFF; // or throw an exception
-        // }
-        // return wram[offset];
-        return 0;
+        return read_data(address - 0x2000);
     }
     else if (address < OAM_OFFSET + OAM_SIZE) {
         if (ppu->dma_transferring()) {
             return 0xFF;
         }
+        ppu->trigger_oam_bug(false);
         return ppu->read_oam(address);
     }
     else if (address < FORBIDDEN_OFFSET + FORBIDDEN_SIZE) {
@@ -99,12 +94,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     else if (address >= ERAM_OFFSET && address < ERAM_OFFSET + ERAM_SIZE) {
-        // const uint16_t offset = address - ERAM_OFFSET;
-        // if (offset >= WRAM_SIZE) {
-        //     std::cerr << "Echo RAM write out of bounds: " << std::hex << address << std::endl;
-        //     return;
-        // }
-        // wram[offset] = value;
+        write_data(address - 0x2000, value);
         return;
     }
 
@@ -112,6 +102,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         if (ppu->dma_transferring()) {
             return;
         }
+        ppu->trigger_oam_bug(true);
         ppu->write_oam(address, value);
         return;
     }
@@ -188,4 +179,8 @@ uint16_t MMU::read_data16(uint16_t address) const {
 void MMU::write_data16(uint16_t address, uint16_t value) {
     write_data(address + 1, (value >> 8) & 0xFF);
     write_data(address, value & 0xFF);
+}
+
+void MMU::trigger_oam_bug(bool is_write) {
+    ppu->trigger_oam_bug(is_write);
 }

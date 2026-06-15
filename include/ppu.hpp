@@ -74,6 +74,7 @@ class PicturePU {
 	uint8_t window_line = 0;
 
 	uint32_t line_ticks = 0;
+	bool first_scanline = false;
 	std::array<uint32_t, SCREEN_WIDTH * SCREEN_HEIGHT> video_buffer = {0};
 
 	struct DMA {
@@ -209,4 +210,5 @@ public:
 	void update_palettes(uint8_t value, uint8_t pal);
 	uint8_t LCD_read(uint16_t address);
 	void LCD_write(uint16_t address, uint8_t value);
+	void trigger_oam_bug(bool is_write);
 };

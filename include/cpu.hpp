@@ -58,7 +58,7 @@ public:
     explicit CPU(const std::shared_ptr<MMU> &mmu, const std::shared_ptr<InterruptHandler> &interruptHandler) :
         fetch_data( 0), mem_dest(0), dest_is_mem(false), current_opcode(0),
         halted(false), stepping(false),
-        EI_Triggered(false), dbg_written(false), bus(mmu),
+        dbg_written(false), bus(mmu),
         interruptHandler(interruptHandler) {};
 
     uint16_t fetch_data;
@@ -70,7 +70,7 @@ public:
     bool halted;
     bool stepping;
 
-    bool EI_Triggered;
+    int EI_delay = 0;
 
     int dbg_msg_size = 0;
     bool dbg_written;
@@ -97,6 +97,15 @@ public:
     void print_cpu_state(uint16_t prev_PC) const;
 
     void serviceInterrupt(uint16_t interruptVector);
+    void check_idu_oam_bug(uint16_t reg_val, bool is_write);
+
+    int ticks_executed = 0;
+
+    std::function<void()> tick_callback;
+    void tick() {
+        if (tick_callback) tick_callback();
+        ticks_executed++;
+    }
 
 private:
     std::shared_ptr<MMU> bus;
@@ -139,4 +148,3 @@ private:
     int process_CB();
 
 };
-

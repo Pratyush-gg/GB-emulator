@@ -42,6 +42,7 @@ public:
     explicit Emulator(const std::string& rom_filename);
     void run();
     void run_one();
+    bool is_running() const;
 
     uint32_t getCurrentFrame() const;
 

@@ -13,6 +13,7 @@ int CPU::fetch_instruction() {
         std::cerr << "Error: Unknown instruction" << std::endl;
         return 0;
     }
+    tick();
     return 4;
 }
 
@@ -60,23 +61,29 @@ int CPU::execute_instruction(const Instruction& instruction) {
 }
 
 void CPU::stack_push(const uint8_t value) {
+    check_idu_oam_bug(regs.SP, true);
     regs.SP--;
     bus->write_data(regs.SP, value);
 }
 
 void CPU::stack_push16(const uint16_t value) {
+    check_idu_oam_bug(regs.SP, true);
+    check_idu_oam_bug(regs.SP - 1, true);
     regs.SP -= 2;
     bus->write_data16(regs.SP, value);
 }
 
 uint8_t CPU::stack_pop() {
     const uint8_t value = bus->read_data(regs.SP);
+    check_idu_oam_bug(regs.SP, false);
     regs.SP++;
     return value;
 }
 
 uint16_t CPU::stack_pop16() {
     const uint16_t value = bus->read_data16(regs.SP);
+    check_idu_oam_bug(regs.SP, false);
+    check_idu_oam_bug(regs.SP + 1, false);
     regs.SP += 2;
     return value;
 }
@@ -84,6 +91,7 @@ uint16_t CPU::stack_pop16() {
 void CPU::dbg_update() {
     if (bus->read_data(0xFF02) == 0x81) {
         const unsigned char c = bus->read_data(0xFF01);
+        std::cout << c << std::flush;
         dbg_msg[dbg_msg_size++] = static_cast<char>(c);
         dbg_written = true;
         bus->write_data(0xFF02, 0);
@@ -112,10 +120,19 @@ void CPU::print_cpu_state(const uint16_t prev_PC) const {
 }
 
 int CPU::cpu_step() {
+    ticks_executed = 0;
     int num_cycles = 0;
+
+    static uint16_t last_pcs[100] = {0};
+    static uint8_t last_opcodes[100] = {0};
+    static int last_pcs_idx = 0;
 
     if (!halted) {
         const uint16_t prev_PC = regs.PC;
+        last_pcs[last_pcs_idx] = prev_PC;
+        last_opcodes[last_pcs_idx] = bus->read_data(prev_PC);
+        last_pcs_idx = (last_pcs_idx + 1) % 100;
+        // std::cout << "[OPCODE] PC=0x" << std::hex << prev_PC << " Opcode=0x" << (int)bus->read_data(prev_PC) << std::dec << std::endl;
 
         dbg_update();
         dbg_print();
@@ -129,24 +146,59 @@ int CPU::cpu_step() {
             return 0;
         else num_cycles += res;
     }
-
     // if (const uint16_t interruptVector = interruptHandler->interruptHandle()) {
     //     serviceInterrupt(interruptVector);
     //     return 20;
     // }
     else {
+        tick();
         num_cycles += 4;
         if (interruptHandler->hasPendingInterrupt()) halted = false;
     }
 
-    if (interruptHandler->IME) {
-        interruptHandler->interruptHandle();
-		num_cycles += 20;
+    // Sync any missing timer/APU ticks for this instruction execution
+    int expected_ticks = num_cycles / 4;
+    while (ticks_executed < expected_ticks) {
+        tick();
     }
 
-    if (this->EI_Triggered) {
-        this->interruptHandler->IME = true;
-        this->EI_Triggered = false;
+    if (EI_delay > 0) {
+        EI_delay--;
+        if (EI_delay == 0) {
+            interruptHandler->IME = true;
+        }
+    }
+
+    if (interruptHandler->IME && interruptHandler->hasPendingInterrupt()) {
+        tick(); tick(); tick(); tick(); tick();
+        interruptHandler->interruptHandle();
+        num_cycles += 20;
+    }
+
+
+
+    uint8_t test_status = bus->read_data(0xA000);
+    if (test_status != 0x80 && test_status != 0xFF && test_status != 0x00) {
+        static bool printed = false;
+        if (!printed) {
+            printed = true;
+            std::cout << "--- LAST 100 INSTRUCTIONS ---" << std::endl;
+            for (int i = 0; i < 100; i++) {
+                int idx = (last_pcs_idx + i) % 100;
+                if (last_pcs[idx] != 0) {
+                    std::cout << "  PC: 0x" << std::hex << last_pcs[idx]
+                              << " Opcode: 0x" << (int)last_opcodes[idx] << std::dec << std::endl;
+                }
+            }
+            std::cout << "-----------------------------" << std::endl;
+
+            std::cout << "--- WRAM DUMP (0xc3c0 - 0xc420) ---" << std::endl;
+            for (uint16_t addr = 0xc3c0; addr <= 0xc420; addr++) {
+                if ((addr % 16) == 0) std::cout << "\n0x" << std::hex << addr << ": ";
+                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)bus->read_data(addr) << " ";
+            }
+            std::cout << std::dec << "\n-----------------------------------" << std::endl;
+        }
     }
 
     return num_cycles;
@@ -159,4 +211,11 @@ void CPU::serviceInterrupt(const uint16_t interruptVector) {
 
 std::reference_wrapper<RegisterFile> CPU::getRegisterDebug() {
     return regs;
+}
+
+void CPU::check_idu_oam_bug(const uint16_t reg_val, bool is_write) {
+    // std::cout << "[DEBUG] check_idu_oam_bug: reg_val=0x" << std::hex << reg_val << " is_write=" << is_write << std::dec << std::endl;
+    if (reg_val >= 0xFE00 && reg_val <= 0xFEFF) {
+        bus->trigger_oam_bug(is_write);
+    }
 }

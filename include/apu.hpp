@@ -82,6 +82,8 @@ private:
 		int duty_position = 0;
 		bool sweep_enabled = false;
 		bool sweep_negate = false;
+		bool sweep_negate_used = false;
+		bool has_sweep = false;
 		uint8_t getOutput() override;
 		void tick(unsigned int cycles) override;
 		void trigger() override;
@@ -147,9 +149,9 @@ private:
 
 	AudioRingBuffer masterRingBuffer; // stores the outgoing buffer for any frontend
 
-	int frame_sequencer_step = 0;
-	int frame_sequencer_timer = 0;
+	int frame_sequencer_step = 7;
 	int sample_timer = 0;
+	uint64_t total_cycles = 0;
 
 	void stepFrameSequencer();
 	void stepEnvelope();
@@ -158,8 +160,10 @@ private:
 public:
 	AudioPU() : masterRingBuffer(4096) {
 		channel3.wave_ram = &wave_pattern;
+		channel1.has_sweep = true;
 	}
 	void tick(unsigned int cycles);
+	void divApuTick();
 	void writeMem(uint16_t address, uint8_t value);
 	uint8_t readMem(uint16_t address) const;
 	AudioRingBuffer& getAudioBuffer() {

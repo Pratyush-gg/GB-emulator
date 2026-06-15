@@ -94,4 +94,5 @@ public:
     void write_data(uint16_t address, uint8_t value);
     uint16_t read_data16(uint16_t address) const;
     void write_data16(uint16_t address, uint16_t value);
+    void trigger_oam_bug(bool is_write);
 };
