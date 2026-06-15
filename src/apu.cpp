@@ -36,6 +36,8 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 	}
 
 	if (address == 0xFF26) {
+		std::cout << "[DEBUG_NR52] write value=" << (int)value << " (prev AUDENA=" << (int)AUDENA << ") step=" << frame_sequencer_step << std::endl;
+		bool was_off = !(AUDENA & 0x80);
 		AUDENA = value & 0x80;
 		if (!(AUDENA & 0x80)) {
 			AUD1SWEEP = 0;
@@ -123,32 +125,36 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 
 			// DMG: frame sequencer step is NOT reset on power-off
 			// (CGB would reset it here)
+		} else if (was_off) {
+			// DMG power-on: reset frame sequencer step to 7 so the next step will be 0.
+			frame_sequencer_step = 7;
 		}
 		return;
 	}
 
 	// APU is off — on DMG, only NRx1 length load registers are writable
 	if (!(AUDENA & 0x80)) {
-		// switch (address) {
-		// 	case 0xFF11: // NR11 - CH1 length
-		// 		AUD1LEN = value;
-		// 		channel1.length_timer = 64 - (value & 0x3F);
-		// 		break;
-		// 	case 0xFF16: // NR21 - CH2 length
-		// 		AUD2LEN = value;
-		// 		channel2.length_timer = 64 - (value & 0x3F);
-		// 		break;
-		// 	case 0xFF1B: // NR31 - CH3 length
-		// 		AUD3LEN = value;
-		// 		channel3.length_timer = 256 - value;
-		// 		break;
-		// 	case 0xFF20: // NR41 - CH4 length
-		// 		AUD4LEN = value;
-		// 		channel4.length_timer = 64 - (value & 0x3F);
-		// 		break;
-		// 	default:
-		// 		break; // All other writes ignored when APU is off
-		// }
+		std::cout << "[DEBUG_APU_OFF_WRITE] address=0x" << std::hex << address << " value=0x" << (int)value << std::dec << std::endl;
+		switch (address) {
+			case 0xFF11: // NR11 - CH1 length
+				AUD1LEN = value & 0x3F;
+				channel1.length_timer = 64 - (value & 0x3F);
+				break;
+			case 0xFF16: // NR21 - CH2 length
+				AUD2LEN = value & 0x3F;
+				channel2.length_timer = 64 - (value & 0x3F);
+				break;
+			case 0xFF1B: // NR31 - CH3 length
+				AUD3LEN = value;
+				channel3.length_timer = 256 - value;
+				break;
+			case 0xFF20: // NR41 - CH4 length
+				AUD4LEN = value & 0x3F;
+				channel4.length_timer = 64 - (value & 0x3F);
+				break;
+			default:
+				break; // All other writes ignored when APU is off
+		}
 		return;
 	}
 
@@ -191,6 +197,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel1.frequency = (channel1.frequency & 0xFF00) | value;
 			break;
 		case 0xFF14: {
+			std::cout << "[DEBUG_NR14] value=" << (int)value << " length_timer=" << (int)channel1.length_timer << " step=" << frame_sequencer_step << " AUDENA=" << (int)AUDENA << std::endl;
 			if (value & 0x80) {
 				std::cout << "[DEBUG_APU] total_cycles=" << total_cycles << " write NR14=" << (int)value << " (trigger) step=" << frame_sequencer_step << " len=" << channel1.length_timer << " len_en=" << (channel1.length_enabled ? 1 : 0) << std::endl;
 			}
@@ -241,6 +248,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel2.frequency = (channel2.frequency & 0xFF00) | value;
 			break;
 		case 0xFF19: {
+			std::cout << "[DEBUG_NR24] value=" << (int)value << " length_timer=" << (int)channel2.length_timer << " step=" << frame_sequencer_step << std::endl;
 			AUD2HIGH = value;
 			channel2.frequency = (channel2.frequency & 0x00FF) | ((value & 0x07) << 8);
 			bool prev_length_enabled2 = channel2.length_enabled;
@@ -289,6 +297,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel3.frequency = (channel3.frequency & 0x0700) | value;
 			break;
 		case 0xFF1E: {
+			std::cout << "[DEBUG_NR34] value=" << (int)value << " length_timer=" << (int)channel3.length_timer << " step=" << frame_sequencer_step << std::endl;
 			AUD3HIGH = value;
 			channel3.frequency = (channel3.frequency & 0x00FF) | ((value & 0x07) << 8);
 			bool prev_length_enabled3 = channel3.length_enabled;
@@ -338,6 +347,7 @@ void AudioPU::writeMem(uint16_t address, uint8_t value) {
 			channel4.divisor_code = value & 0x07;
 			break;
 		case 0xFF23: {
+			std::cout << "[DEBUG_NR44] value=" << (int)value << " length_timer=" << (int)channel4.length_timer << " step=" << frame_sequencer_step << std::endl;
 			AUD4GO = value;
 			bool prev_length_enabled4 = channel4.length_enabled;
 			channel4.length_enabled = value & 0x40;
