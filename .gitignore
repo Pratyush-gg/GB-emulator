@@ -17,6 +17,7 @@ build/
 *.pdb
 *.suo
 *.user
+*.zip
 
 # Operating System Files
 .DS_Store

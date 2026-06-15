@@ -1,5 +1,11 @@
 # Simple-Boy
 
+![C++](https://img.shields.io/badge/Language-C%2B%2B%2017-blue)
+![CMake](https://img.shields.io/badge/Build-CMake-orange)
+![SFML](https://img.shields.io/badge/Graphics-SFML%203-brightgreen)
+![ImGui](https://img.shields.io/badge/UI-ImGui-red)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
 A cycle accurate, high performance Game Boy (DMG-01) emulator written in C++17. Built with modern software design patterns, a comprehensive interactive debugger, and fully optimized audio/graphics rendering using SFML and ImGui. Simple-Boy focuses on clean cycle accurate timing, precise hardware behavior (such as custom LCD timings and stack interrupt execution bounds), and automated test harness execution.
 
 ---
@@ -134,19 +140,31 @@ cmake --build cmake-build-release --config Release -j
 
 ## Running the Emulator
 
-Place your Game Boy ROM files (`.gb`) inside the `roms/` folder at the root of the project (or any other folder of your choice). You must specify the path to your ROM file when launching the executable.
+### Method A: Running the Precompiled Windows Release (.zip)
+If you downloaded the precompiled Windows zip package from the GitHub Releases page:
+1. Extract the ZIP archive completely to a folder on your computer.
+2. Place your Game Boy ROM file (`.gb`) in that folder or note its path.
+3. Open PowerShell or Command Prompt in the extracted directory and run:
+   ```powershell
+   # Standard gameplay mode
+   .\Simple-Boy.exe roms/Tetris.gb
 
-After a successful compilation, you can run the emulator from the root directory:
+   # Launch with the interactive debugger
+   .\Simple-Boy.exe roms/Tetris.gb --debug
+   ```
+
+### Method B: Running after building from source
+If you compiled the project yourself from source, you can run it from the repository root:
 
 ```bash
-# Standard Gameplay mode (loads Tetris.gb from the roms/ folder)
+# Standard Gameplay mode
 ./cmake-build-release/bin/Simple-Boy.exe roms/Tetris.gb
 
 # Running with the interactive debugger
 ./cmake-build-release/bin/Simple-Boy.exe roms/Tetris.gb --debug
 
 # Running in headless mode for quick automated testing
-./cmake-build-release/bin/Simple-Boy.exe roms/tests/cpu_instrs/individual/02-interrupts.gb --headless
+./cmake-build-release/bin/Simple-Boy.exe roms/02-interrupts.gb --headless
 ```
 
 ### Keyboard Controls
