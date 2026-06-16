@@ -96,11 +96,15 @@ We recommend installing compilers and build tools via **MSYS2 (UCRT64)** or **wi
   winget install Kitware.CMake Git.Git Ninja-build
   ```
 
-#### Linux (Ubuntu/Debian):
-Run the following in your terminal to install the standard compiler, CMake, and SFML development libraries:
+#### Linux (Ubuntu/Debian) & WSL:
+Run the following in your terminal to install the compiler, build tools, Git, and the development libraries required to compile SFML from source:
 ```bash
 sudo apt-get update
-sudo apt-get install build-essential cmake git libsfml-dev
+sudo apt-get install build-essential cmake git ninja-build \
+    libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+    libgl1-mesa-dev libudev-dev libasound2-dev libopenal-dev \
+    libfreetype-dev libvorbis-dev libflac-dev libogg-dev \
+    libharfbuzz-dev -y
 ```
 
 ---
@@ -118,7 +122,7 @@ cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -B cmake-build-release -S .
 cmake --build cmake-build-release
 ```
 
-#### Option B: MinGW Makefiles
+#### Option B: MinGW Makefiles (Windows CLI)
 ```powershell
 # Configure the project
 cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -B cmake-build-release -S .
@@ -127,7 +131,16 @@ cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -B cmake-build-release -S 
 cmake --build cmake-build-release -j
 ```
 
-#### Option C: Visual Studio (MSVC)
+#### Option C: Unix Makefiles (Linux standard)
+```bash
+# Configure the project
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -B cmake-build-release -S .
+
+# Build the project (using all parallel CPU cores)
+cmake --build cmake-build-release -j$(nproc)
+```
+
+#### Option D: Visual Studio (MSVC on Windows)
 ```powershell
 # Configure the project
 cmake -B cmake-build-release -S .

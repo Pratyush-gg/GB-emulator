@@ -13,6 +13,9 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
 
+# Disable building SFML's network module since we don't use it (avoids MbedTLS dependency)
+set(SFML_BUILD_NETWORK OFF CACHE BOOL "" FORCE)
+
 # Fetch SFML
 FetchContent_Declare(SFML
         GIT_REPOSITORY https://github.com/SFML/SFML.git
@@ -55,6 +58,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics sfml-window sfml-sys
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+
+# Statically link C/C++ runtime libraries when using MinGW on Windows to ensure portability
+if(MINGW)
+    target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
+endif()
 
 # Copy SFML and dependencies
 if(WIN32)
