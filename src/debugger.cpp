@@ -384,8 +384,9 @@ void Debugger::handle_command(char* commandBuffer) {
     else if (token == "q" || token == "quit" || token == "exit") {
         this->exit_requested = true;
     }
-    strcpy(prevCommandBuffer, command.c_str());
-    strcpy(commandBuffer, "");
+    strncpy(prevCommandBuffer, command.c_str(), sizeof(prevCommandBuffer) - 1);
+    prevCommandBuffer[sizeof(prevCommandBuffer) - 1] = '\0';
+    commandBuffer[0] = '\0';
 }
 
 void Debugger::render_command_prompt() {
