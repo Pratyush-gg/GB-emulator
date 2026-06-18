@@ -166,7 +166,27 @@ If you downloaded the precompiled Windows zip package from the GitHub Releases p
    .\Simple-Boy.exe roms/Tetris.gb --debug
    ```
 
-### Method B: Running after building from source
+### Method B: Running the Precompiled Linux Release (.tar.gz)
+If you downloaded the precompiled Linux tarball from the GitHub Releases page:
+1. Install system library dependencies:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install libopenal1 libgl1 libudev1 libx11-6 libxrandr2 libxcursor1 libxi6 -y
+   ```
+2. Extract the Tarball archive:
+   ```bash
+   tar -xzf Simple-Boy-v1.0.0-Linux.tar.gz
+   ```
+3. Run the emulator inside the extracted folder:
+   ```bash
+   # Standard gameplay mode
+   ./Simple-Boy roms/Tetris.gb
+
+   # Launch with the interactive debugger
+   ./Simple-Boy roms/Tetris.gb --debug
+   ```
+
+### Method C: Running after building from source
 If you compiled the project yourself from source, you can run it from the repository root:
 
 ```bash

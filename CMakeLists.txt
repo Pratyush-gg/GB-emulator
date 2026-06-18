@@ -61,7 +61,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC include)
 
 # Statically link C/C++ runtime libraries when using MinGW on Windows to ensure portability
 if(MINGW)
-    target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
+    target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++ -static)
 endif()
 
 # Copy SFML and dependencies
