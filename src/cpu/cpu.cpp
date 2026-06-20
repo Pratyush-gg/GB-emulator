@@ -7,7 +7,12 @@
 #include "emu.hpp"
 
 int CPU::fetch_instruction() {
-    current_opcode = bus->read_data(regs.PC++);
+    if (halt_bug_triggered) {
+        current_opcode = bus->read_data(regs.PC);
+        halt_bug_triggered = false;
+    } else {
+        current_opcode = bus->read_data(regs.PC++);
+    }
     current_instruction = instructions[current_opcode];
     if (current_instruction.type == INST_TYPE::IN_NONE) {
         std::cerr << "Error: Unknown instruction" << std::endl;

@@ -43,7 +43,7 @@ uint8_t MMU::read_data(const uint16_t address) const {
         if (address == 0xFF00) return joypad->joypad_get_output();
         if (address == 0xFF01) return serial_data[0];
         if (address == 0xFF02) return serial_data[1];
-        if (address == 0xFF0F) return this->interrupt->IF;
+        if (address == 0xFF0F) return this->interrupt->IF | 0xE0;
 
         if (address >= TIMER_OFFSET && address <= TIMER_END)
             return timer->readAddr(address);
@@ -62,7 +62,7 @@ uint8_t MMU::read_data(const uint16_t address) const {
         return hram[offset];
     }
     if (address == 0xFFFF) {
-        return this->interrupt->IE;
+        return this->interrupt->IE | 0xE0;
     }
     return -1;
 }
@@ -125,7 +125,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
         }
 
         if (address == 0xFF0F) {
-            this->interrupt->IF = value;
+            this->interrupt->IF = value | 0xE0;
             return;
         }
 
@@ -159,7 +159,7 @@ void MMU::write_data(uint16_t address, uint8_t value) {
     }
 
     else if (address == 0xFFFF) {
-        this->interrupt->IE = value;
+        this->interrupt->IE = value | 0xE0;
         return;
     }
 

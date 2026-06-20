@@ -561,17 +561,15 @@ void Debugger::get_video_buffer(std::array<uint32_t, 160 * 144> &out_buffer) {
 }
 
 void Debugger::handle_input(sf::Keyboard::Key key, bool is_pressed) {
-    auto state = emu->getJoyPad()->joypad_get_state();
-
     switch (key) {
-        case sf::Keyboard::Key::Z:      state->b = is_pressed;      break; // B Button
-        case sf::Keyboard::Key::X:      state->a = is_pressed;      break; // A Button
-        case sf::Keyboard::Key::Enter:  state->start = is_pressed;  break; // Start
-        case sf::Keyboard::Key::Tab:    state->select = is_pressed; break; // Select
-        case sf::Keyboard::Key::Up:     state->up = is_pressed;     break; // D-Pad Up
-        case sf::Keyboard::Key::Down:   state->down = is_pressed;   break; // D-Pad Down
-        case sf::Keyboard::Key::Left:   state->left = is_pressed;   break; // D-Pad Left
-        case sf::Keyboard::Key::Right:  state->right = is_pressed;  break; // D-Pad Right
+        case sf::Keyboard::Key::Z:      emu->getJoyPad()->set_key_state(JoypadKey::B, is_pressed);      break; // B Button
+        case sf::Keyboard::Key::X:      emu->getJoyPad()->set_key_state(JoypadKey::A, is_pressed);      break; // A Button
+        case sf::Keyboard::Key::Enter:  emu->getJoyPad()->set_key_state(JoypadKey::Start, is_pressed);  break; // Start
+        case sf::Keyboard::Key::Tab:    emu->getJoyPad()->set_key_state(JoypadKey::Select, is_pressed); break; // Select
+        case sf::Keyboard::Key::Up:     emu->getJoyPad()->set_key_state(JoypadKey::Up, is_pressed);     break; // D-Pad Up
+        case sf::Keyboard::Key::Down:   emu->getJoyPad()->set_key_state(JoypadKey::Down, is_pressed);   break; // D-Pad Down
+        case sf::Keyboard::Key::Left:   emu->getJoyPad()->set_key_state(JoypadKey::Left, is_pressed);   break; // D-Pad Left
+        case sf::Keyboard::Key::Right:  emu->getJoyPad()->set_key_state(JoypadKey::Right, is_pressed);  break; // D-Pad Right
         default: break;
     }
 }

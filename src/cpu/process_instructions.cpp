@@ -424,7 +424,15 @@ int CPU::process_CCF() {
 }
 
 int CPU::process_HALT() {
-    this->halted = true;
+    if (this->interruptHandler->IME) {
+        this->halted = true;
+    } else {
+        if (this->interruptHandler->hasPendingInterrupt()) {
+            this->halt_bug_triggered = true;
+        } else {
+            this->halted = true;
+        }
+    }
     return 0;
 }
 

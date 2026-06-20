@@ -57,7 +57,7 @@ class CPU {
 public:
     explicit CPU(const std::shared_ptr<MMU> &mmu, const std::shared_ptr<InterruptHandler> &interruptHandler) :
         fetch_data( 0), mem_dest(0), dest_is_mem(false), current_opcode(0),
-        halted(false), stepping(false),
+        halted(false), stepping(false), halt_bug_triggered(false),
         dbg_written(false), bus(mmu),
         interruptHandler(interruptHandler) {};
 
@@ -69,6 +69,7 @@ public:
     Instruction current_instruction;
     bool halted;
     bool stepping;
+    bool halt_bug_triggered;
 
     int EI_delay = 0;
 

@@ -52,8 +52,27 @@ public:
     bool battery;
     bool needs_save;
 
+    uint8_t rom_bank_low;
+    uint8_t rom_bank_high;
+
+    // MBC2 RAM (512 bytes, 4-bit)
+    uint8_t mbc2_ram[512];
+
+    // MBC3 RTC Registers (Seconds, Minutes, Hours, Days Low, Days High)
+    uint8_t rtc_registers[5];
+    uint8_t latched_rtc_registers[5];
+    bool clock_latch_state;
+    uint32_t last_rtc_update_time;
+
+    void update_banks();
+    void update_rtc();
+    void add_rtc_seconds(uint64_t seconds);
+
     bool cart_needs_save() const;
     bool cart_mbc1() const;
+    bool cart_mbc2() const;
+    bool cart_mbc3() const;
+    bool cart_mbc5() const;
     bool cart_battery() const;
     void cart_setup_banking();
     void cart_battery_load();

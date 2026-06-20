@@ -3,11 +3,13 @@
 /cmake-build-debug/
 /cmake-build-release/
 /build/
+/build-linux/
 .vs/
 out/
 cmake-build-debug/
 cmake-build-release/
 build/
+build-linux/
 
 # Compilation Artifacts
 *.o
@@ -18,6 +20,7 @@ build/
 *.suo
 *.user
 *.zip
+*.tar.gz
 
 # Operating System Files
 .DS_Store
@@ -34,3 +37,7 @@ imgui.ini
 /roms/*
 !/roms/.gitkeep
 !/roms/tests/
+
+# Ignore local tests folder completely
+/tests/
+tests/

@@ -9,10 +9,10 @@
 class InterruptHandler;
 
 enum LCD_MODE {
-	MODE_VBLANK,
-	MODE_HBLANK,
-	MODE_OAM,
-	MODE_XFER,
+	MODE_HBLANK = 0,
+	MODE_VBLANK = 1,
+	MODE_OAM = 2,
+	MODE_XFER = 3,
 };
 
 enum STAT_SOURCES {

@@ -166,6 +166,8 @@ If you downloaded the precompiled Windows zip package from the GitHub Releases p
    .\Simple-Boy.exe roms/Tetris.gb --debug
    ```
 
+*Note: The Windows executable is 100% statically linked (including standard libraries, SFML, and ImGui) and runs as a standalone binary without requiring any DLL files.*
+
 ### Method B: Running the Precompiled Linux Release (.tar.gz)
 If you downloaded the precompiled Linux tarball from the GitHub Releases page:
 1. Install system library dependencies:
@@ -185,6 +187,8 @@ If you downloaded the precompiled Linux tarball from the GitHub Releases page:
    # Launch with the interactive debugger
    ./Simple-Boy roms/Tetris.gb --debug
    ```
+
+*Note: The Linux executable statically links C/C++ runtimes and SFML/ImGui libraries to ensure maximum portability, dynamically loading only the graphics/display server drivers (OpenGL, X11, udev) at runtime.*
 
 ### Method C: Running after building from source
 If you compiled the project yourself from source, you can run it from the repository root:
@@ -216,15 +220,10 @@ When in gameplay mode, the Game Boy controls are mapped as follows:
 
 ## Testing & Accuracy
 
-Simple-Boy passes all CPU, interrupt timing, and instruction logic test suites from Blargg's GB tests.
+Simple-Boy passes all CPU, interrupt timing, instruction logic, and CPU hardware behavior test suites (such as `halt_bug.gb`) from Blargg's GB tests.
 
-### How Serial Output Works
-The emulator hooks into the Serial Transfer registers:
-* When `0x81` is written to the Serial Control register (`$FF02`), it signals that a character is ready.
-* The emulator reads the byte from the Serial Transfer Data register (`$FF01`), parses it as an ASCII character, and prints it directly to your terminal's standard output.
-
-### Running Test ROMs
-To run tests yourself and verify instruction accuracy, you can download Blargg's test ROMs (or Mooneye's tests) manually, place them in a folder (such as `roms/`), and run the emulator in `--headless` mode:
+### Running Blargg Test ROMs
+To run tests yourself and verify instruction accuracy, you can download Blargg's test ROMs manually, place them in a folder (such as `roms/`), and run the emulator in `--headless` mode:
 
 ```powershell
 # Run a CPU instruction test (e.g. 02-interrupts.gb)
@@ -242,6 +241,11 @@ Checksum matches.
 
 Passed
 ```
+
+### How Serial Output Works
+The emulator hooks into the Serial Transfer registers:
+* When `0x81` is written to the Serial Control register (`$FF02`), it signals that a character is ready.
+* The emulator reads the byte from the Serial Transfer Data register (`$FF01`), parses it as an ASCII character, and prints it directly to your terminal's standard output.
 
 ---
 
