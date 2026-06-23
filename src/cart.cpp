@@ -111,6 +111,16 @@ void Cartridge::print_cart_info() const {
 }
 
 uint8_t Cartridge::cart_read(const uint16_t address) const {
+    if (cart_wisdom_tree()) {
+        if (address < 0x8000) {
+            size_t num_32k_banks = this->rom_data.size() / 0x8000;
+            if (num_32k_banks == 0) num_32k_banks = 1;
+            size_t bank = this->rom_bank_value % num_32k_banks;
+            return this->rom_data[(bank * 0x8000) + address];
+        }
+        return 0xFF;
+    }
+
     if (address < 0x4000) {
         if (cart_mbc1() && this->banking_mode == 1) {
             size_t total_rom_banks = this->rom_data.size() / 0x4000;
@@ -182,6 +192,11 @@ bool Cartridge::cart_mbc5() const {
     return (this->cart_header.cart_type >= 0x19 && this->cart_header.cart_type <= 0x1E);
 }
 
+bool Cartridge::cart_wisdom_tree() const {
+    return (this->cart_header.cart_type == 0xC0 || 
+            (this->cart_header.cart_type == 0x00 && this->rom_data.size() > 0x8000));
+}
+
 bool Cartridge::cart_battery() const {
     return (this->cart_header.cart_type == 0x03 || 
             this->cart_header.cart_type == 0x06 ||
@@ -208,7 +223,7 @@ void Cartridge::cart_setup_banking() {
     this->rom_bank_x = this->rom_data.data() + 0x4000;
     this->rom_bank_low = 1;
     this->rom_bank_high = 0;
-    this->rom_bank_value = 1;
+    this->rom_bank_value = cart_wisdom_tree() ? 0 : 1;
     this->ram_bank_value = 0;
     this->banking_mode = 0;
     this->ram_banking = false;
@@ -393,6 +408,13 @@ void Cartridge::cart_battery_save() {
 }
 
 void Cartridge::cart_write(uint16_t address, uint8_t value) {
+    if (cart_wisdom_tree()) {
+        if (address < 0x8000) {
+            this->rom_bank_value = value;
+        }
+        return;
+    }
+
     if (!cart_mbc1() && !cart_mbc2() && !cart_mbc3() && !cart_mbc5()) {
         return;
     }

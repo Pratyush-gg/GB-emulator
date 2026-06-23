@@ -59,6 +59,7 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 
+
 # Statically link C/C++ runtime libraries to ensure portability
 if(MINGW)
     target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++ -static)

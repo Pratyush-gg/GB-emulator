@@ -73,6 +73,7 @@ public:
     bool cart_mbc2() const;
     bool cart_mbc3() const;
     bool cart_mbc5() const;
+    bool cart_wisdom_tree() const;
     bool cart_battery() const;
     void cart_setup_banking();
     void cart_battery_load();

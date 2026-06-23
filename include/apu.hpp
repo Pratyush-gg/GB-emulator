@@ -115,9 +115,9 @@ private:
 		void trigger() override;
 	};
 
-	uint8_t AUDVOL = 0;		// FF24 master volume & VIN panning [NR50]
-	uint8_t AUDTERM = 0;	// FF25 sound panning [NR51]
-	uint8_t AUDENA = 0;		// FF26 audio master control [NR52]
+	uint8_t AUDVOL = 0x77;		// FF24 master volume & VIN panning [NR50]
+	uint8_t AUDTERM = 0xF3;	// FF25 sound panning [NR51]
+	uint8_t AUDENA = 0xF1;		// FF26 audio master control [NR52]
 
 	// CHANNEL 1
 	uint8_t AUD1SWEEP = 0;	// FF10 channel 1 sweep [NR10]

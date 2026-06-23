@@ -16,6 +16,9 @@ static long frame_count = 0;
 PicturePU::PicturePU(std::shared_ptr<InterruptHandler> interruptHandler, std::shared_ptr<Cartridge> cartridge) {
 	this->interruptHandler = interruptHandler;
 	this->cartridge = cartridge;
+	update_palettes(0xFC, 0);
+	update_palettes(0xFF, 1);
+	update_palettes(0xFF, 2);
 }
 
 uint8_t PicturePU::read_vram(const uint16_t address) const {

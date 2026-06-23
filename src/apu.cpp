@@ -612,31 +612,30 @@ void AudioPU::tick(unsigned int cycles) {
 	prev_ch1_enabled = channel1.enabled;
 	*/
 
-	if (!(AUDENA & 0x80)) {
-		return;
+	if (AUDENA & 0x80) {
+		channel1.tick(cycles);
+		channel2.tick(cycles);
+		channel3.tick(cycles);
+		channel4.tick(cycles);
 	}
-
-	channel1.tick(cycles);
-	channel2.tick(cycles);
-	channel3.tick(cycles);
-	channel4.tick(cycles);
 
 	sample_timer += cycles;
 	if (sample_timer >= CLOCKS_PER_SAMPLE) {
 		sample_timer -= CLOCKS_PER_SAMPLE;
 
-		int sample = 0;
-		sample += (channel1.enabled && channel1.dac_enabled) ? channel1.getOutput() : 0;
-		sample += (channel2.enabled && channel2.dac_enabled) ? channel2.getOutput() : 0;
-		sample += (channel3.enabled && channel3.dac_enabled) ? channel3.getOutput() : 0;
-		sample += (channel4.enabled && channel4.dac_enabled) ? channel4.getOutput() : 0;
+		int16_t output_sample = 0;
+		if (AUDENA & 0x80) {
+			int sample = 0;
+			sample += (channel1.enabled && channel1.dac_enabled) ? channel1.getOutput() : 0;
+			sample += (channel2.enabled && channel2.dac_enabled) ? channel2.getOutput() : 0;
+			sample += (channel3.enabled && channel3.dac_enabled) ? channel3.getOutput() : 0;
+			sample += (channel4.enabled && channel4.dac_enabled) ? channel4.getOutput() : 0;
 
-		float normalize = sample / 30.0f;
-		normalize -= 1.0f;
-
-		normalize *= 0.5f; // adjust volume
-
-		int16_t output_sample = static_cast<int16_t>(normalize * 32767.0f);
+			float normalize = sample / 30.0f;
+			normalize -= 1.0f;
+			normalize *= 0.5f; // adjust volume
+			output_sample = static_cast<int16_t>(normalize * 32767.0f);
+		}
 		masterRingBuffer.push(output_sample);
 	}
 }
@@ -713,9 +712,9 @@ uint8_t AudioPU::NoiseChannel::getOutput() {
 }
 
 void AudioPU::reset() {
-	AUDVOL = 0;
-	AUDTERM = 0;
-	AUDENA = 0;
+	AUDVOL = 0x77;
+	AUDTERM = 0xF3;
+	AUDENA = 0xF1;
 	AUD1SWEEP = 0;
 	AUD1LEN = 0;
 	AUD1ENV = 0;
